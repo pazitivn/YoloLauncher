@@ -76,6 +76,7 @@ function AddAccountModal({ onClose, onCreated }) {
 // ─── Skin Integrations Panel ───────────────────────────────────────────────────
 function SkinIntegrationsPanel({ account, onRefresh }) {
   const { addToast } = useToast();
+  const { t } = useTranslation();
   const [checkedServices, setCheckedServices] = useState([]);
   const [mainService, setMainService] = useState(null);
   const [customUrl, setCustomUrl] = useState('');

@@ -1,104 +1,126 @@
-# 🎮 YoloLauncher
+<div align="center">
 
-**YoloLauncher** — современный Minecraft-лаунчер с открытым исходным кодом, построенный на [Tauri 2](https://tauri.app/) + [React](https://react.dev/).
+<img src="src-tauri/icons/icon.png" width="120" alt="YoloLauncher Logo" />
 
-![Preview](https://img.shields.io/badge/version-0.1.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+# YoloLauncher
+
+**Современный лаунчер Minecraft с открытым исходным кодом**
+
+[![Version](https://img.shields.io/badge/version-0.5.0--beta-blueviolet?style=for-the-badge)](https://github.com/pazitivn/YoloLauncher/releases)
+[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue?style=for-the-badge&logo=windows)](https://github.com/pazitivn/YoloLauncher/releases)
+[![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange?style=for-the-badge&logo=tauri)](https://tauri.app)
+
+[📦 Скачать](https://github.com/pazitivn/YoloLauncher/releases/latest) · [🐛 Сообщить об ошибке](https://github.com/pazitivn/YoloLauncher/issues) · [💬 Обсуждения](https://github.com/pazitivn/YoloLauncher/discussions)
+
+</div>
 
 ---
+
+## О проекте
+
+**YoloLauncher** — это быстрый, красивый и функциональный лаунчер Minecraft, построенный на [Tauri 2](https://tauri.app/) (Rust) + [React 19](https://react.dev/). Поддерживает русский и английский языки, работает полностью нативно без браузерного движка.
 
 ## ✨ Возможности
 
-- 🗂️ **Управление инстансами** — создание, редактирование и запуск нескольких профилей Minecraft
-- 👤 **Аккаунты** — поддержка Microsoft (лицензионных) и офлайн-аккаунтов
-- 🎨 **Скины** — 3D-просмотр скина игрока прямо в лаунчере (WebGL)
-- 📦 **Менеджер контента** — моды, ресурспаки, шейдеры, миры одним кликом
-- 💻 **Встроенная консоль** — вывод логов игры в реальном времени
-- 📊 **Статистика** — время игры, дата последнего запуска, счётчик запусков
-- 🌍 **Локализация** — интерфейс на русском и английском языках
-- 🔄 **Миграция** — автоимпорт данных из TLauncher / SKLauncher
-- 🖥️ **Кастомный тайтлбар** — нативный внешний вид с кастомными кнопками окна
+<table>
+<tr>
+<td>
 
----
+**👤 Аккаунты**
+- Microsoft OAuth (лицензия)
+- Offline-режим (без регистрации)
+- Несколько аккаунтов одновременно
 
-## 🛠️ Стек технологий
+**🗂️ Инстансы**
+- Vanilla, Fabric, Forge, Quilt, NeoForge
+- Индивидуальные настройки JVM и RAM
+- Кастомный путь установки
 
-| Часть | Технология |
-|---|---|
-| Frontend | React 19 + Vite 7 |
-| Backend | Rust (Tauri 2) |
-| UI-библиотека | Vanilla CSS (кастомный дизайн) |
-| 3D скины | skinview3d |
-| Иконки | lucide-react |
-| Хранилище данных | tauri-plugin-store |
+**🎨 Скины**
+- 3D WebGL просмотр скина
+- TLSkins, Ely.by, Microsoft, Custom URL
+- Поддержка второго слоя скина
 
----
+</td>
+<td>
 
-## 🚀 Установка и запуск (разработка)
+**📦 Контент**
+- Менеджер модов, ресурспаков, шейдеров
+- Управление мирами и скриншотами
+
+**💻 Консоль**
+- Встроенный лог Minecraft в реальном времени
+- Minecraft-цветовая разметка (§-коды)
+
+**📊 Статистика**
+- Время в игре, дата последнего запуска
+- Данные хранятся между перезапусками
+
+**🔄 Миграция**
+- Автоимпорт из TLauncher / SKLauncher
+
+</td>
+</tr>
+</table>
+
+## 💾 Установка
+
+> **Windows 10 / 11 (x64)** — другие платформы не поддерживаются в данный момент
+
+1. Перейди на страницу [**Releases**](https://github.com/pazitivn/YoloLauncher/releases/latest)
+2. Скачай `YoloLauncher_*_x64-setup.exe`
+3. Запусти установщик и следуй инструкции
+
+## 🛠️ Разработка
 
 ### Требования
 
-- [Node.js](https://nodejs.org/) ≥ 18
-- [Rust](https://rustup.rs/) (последняя стабильная версия)
-- [Tauri CLI](https://tauri.app/start/prerequisites/)
-
-### Шаги
+| Инструмент | Версия |
+|---|---|
+| [Node.js](https://nodejs.org/) | ≥ 18 |
+| [Rust](https://rustup.rs/) | stable |
+| [Tauri CLI](https://tauri.app/start/prerequisites/) | v2 |
 
 ```bash
-# Клонируй репозиторий
-git clone https://github.com/YOUR_USERNAME/YoloLauncher.git
+git clone https://github.com/pazitivn/YoloLauncher.git
 cd YoloLauncher
-
-# Установи зависимости
 npm install
-
-# Запусти в режиме разработки
 npm run tauri dev
 ```
 
----
-
-## 📦 Сборка релиза
+### Сборка релиза
 
 ```bash
 npm run tauri build
+# → src-tauri/target/release/bundle/
 ```
-
-Установщик будет в `src-tauri/target/release/bundle/nsis/`.
-
----
 
 ## 📁 Структура проекта
 
 ```
 YoloLauncher/
-├── src/                    # React-фронтенд
-│   ├── components/         # Переиспользуемые компоненты
-│   ├── pages/              # Страницы лаунчера
-│   ├── utils/              # Утилиты (статистика и пр.)
-│   └── i18n.jsx            # Локализация
-├── src-tauri/              # Rust-бэкенд (Tauri)
-│   ├── src/
-│   │   ├── accounts.rs     # Управление аккаунтами
-│   │   ├── instances.rs    # Управление инстансами
-│   │   ├── launch.rs       # Запуск Minecraft
-│   │   ├── download.rs     # Загрузка файлов
-│   │   ├── skins.rs        # Скины
-│   │   ├── content.rs      # Менеджер контента
-│   │   ├── migration.rs    # Миграция из других лаунчеров
-│   │   ├── java.rs         # Управление Java
-│   │   └── python.rs       # PortableMC (Python)
-│   └── tauri.conf.json     # Конфигурация Tauri
-├── public/                 # Статические ресурсы
-└── index.html
+├── src/                        # React frontend
+│   ├── components/             # UI компоненты
+│   ├── pages/                  # Страницы лаунчера
+│   │   └── tabs/               # Вкладки инстанса
+│   ├── utils/                  # Утилиты
+│   └── i18n.jsx                # Локализация (RU/EN)
+└── src-tauri/                  # Rust backend (Tauri 2)
+    └── src/
+        ├── accounts.rs         # Аккаунты
+        ├── instances.rs        # Инстансы
+        ├── launch.rs           # Запуск игры
+        ├── download.rs         # Загрузка файлов
+        ├── skins.rs            # Скины
+        ├── content.rs          # Моды, ресурспаки
+        ├── migration.rs        # Миграция
+        └── java.rs             # Java
 ```
 
----
+## 🤝 Участие в разработке
 
-## 🤝 Вклад в проект
-
-Pull request'ы приветствуются! Для крупных изменений сначала откройте Issue.
-
----
+Pull request-ы приветствуются. Для крупных изменений сначала откройте Issue.
 
 ## 📄 Лицензия
 

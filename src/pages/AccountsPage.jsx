@@ -13,6 +13,7 @@ import { SkinViewer3D } from '../components/SkinViewer3D';
 // ─── Add Account Modal ───────────────────────────────────────────────────────
 function AddAccountModal({ onClose, onCreated }) {
   const { addToast } = useToast();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,7 +24,7 @@ function AddAccountModal({ onClose, onCreated }) {
     setLoading(true);
     try {
       const acc = await invoke('add_offline_account', { username: username.trim() });
-      addToast(`Аккаунт "${acc.username}" добавлен!`, 'success');
+      addToast(t('accountAdded'), 'success');
       onCreated(acc);
     } catch (err) {
       setError(String(err));
@@ -35,11 +36,11 @@ function AddAccountModal({ onClose, onCreated }) {
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal" role="dialog">
-        <div className="modal-title">Добавить оффлайн аккаунт</div>
-        <div className="modal-subtitle">Введите ник Minecraft. Без авторизации Microsoft.</div>
+        <div className="modal-title">{t('addOfflineAccount')}</div>
+        <div className="modal-subtitle">{t('addOfflineAccountDesc')}</div>
         <form onSubmit={handleAdd}>
           <div className="form-group">
-            <label className="form-label" htmlFor="acc-username">Никнейм</label>
+            <label className="form-label" htmlFor="acc-username">{t('nickname')}</label>
             <input
               id="acc-username"
               className="form-input"
@@ -52,18 +53,18 @@ function AddAccountModal({ onClose, onCreated }) {
               spellCheck="false"
               data-form-type="other"
             />
-            <div className="form-hint">3–16 символов: буквы, цифры, подчёркивание.</div>
+            <div className="form-hint">{t('nicknameHint')}</div>
             {error && <div className="form-error">{error}</div>}
           </div>
           <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Отмена</button>
+            <button type="button" className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
             <button
               id="add-account-submit"
               type="submit"
               className="btn btn-primary"
               disabled={loading || username.trim().length < 3}
             >
-              {loading ? 'Добавление…' : 'Добавить'}
+              {loading ? t('adding') : t('add')}
             </button>
           </div>
         </form>
@@ -120,26 +121,24 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
       setCheckedServices(nextServices);
       setMainService(nextMain);
       saveSettings(nextServices, nextMain, customUrl, elyUser);
-      addToast(`Сервис ${service.toUpperCase()} отключён`, 'success');
+      addToast(`${service.toUpperCase()} ${t('skinServicePrimary').toLowerCase()}`, 'success');
     } else {
       nextServices.push(service);
       let nextMain = mainService || service;
       setCheckedServices(nextServices);
       setMainService(nextMain);
       saveSettings(nextServices, nextMain, customUrl, elyUser);
-      addToast(`Сервис ${service.toUpperCase()} подключён`, 'success');
+      addToast(`${service.toUpperCase()} connected`, 'success');
     }
   }
 
   function handleSetMain(service) {
     let nextServices = [...checkedServices];
-    if (!nextServices.includes(service)) {
-      nextServices.push(service);
-    }
+    if (!nextServices.includes(service)) { nextServices.push(service); }
     setMainService(service);
     setCheckedServices(nextServices);
     saveSettings(nextServices, service, customUrl, elyUser);
-    addToast(`Сервис ${service.toUpperCase()} выбран главным`, 'success');
+    addToast(`${service.toUpperCase()} — ${t('skinServicePrimary')}`, 'success');
   }
 
   function handleBlurText() {
@@ -150,18 +149,18 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
     {
       id: 'tls',
       name: 'TLSkins (TLauncher)',
-      desc: 'Скины из базы TLauncher. Подгружаются автоматически по вашему нику.',
+      desc: t('tlsDesc'),
       icon: <Shield size={16} />,
       config: null
     },
     {
       id: 'ely',
       name: 'Ely.by',
-      desc: 'Популярная альтернативная система скинов Ely.by. Требует никнейм.',
+      desc: t('elyDesc'),
       icon: <Sparkles size={16} />,
       config: (
         <div className="form-group" style={{ marginTop: 10, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: 11 }}>Никнейм на Ely.by (по умолчанию ваш ник)</label>
+          <label className="form-label" style={{ fontSize: 11 }}>{t('elyUsernameLabel')}</label>
           <input
             className="form-input"
             value={elyUser}
@@ -179,18 +178,18 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
     {
       id: 'microsoft',
       name: 'Microsoft / Mojang',
-      desc: 'Официальные скины лицензионных игроков Minecraft.',
+      desc: t('microsoftDesc'),
       icon: <Key size={16} />,
       config: null
     },
     {
       id: 'custom',
       name: 'Custom URL',
-      desc: 'Использовать прямую ссылку на PNG файл вашего скина.',
+      desc: t('customDesc'),
       icon: <Globe size={16} />,
       config: (
         <div className="form-group" style={{ marginTop: 10, marginBottom: 0 }}>
-          <label className="form-label" style={{ fontSize: 11 }}>Прямая ссылка на скин (PNG)</label>
+          <label className="form-label" style={{ fontSize: 11 }}>{t('customUrlLabel')}</label>
           <input
             className="form-input"
             value={customUrl}
@@ -204,7 +203,7 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
           />
           {customUrl && !customUrl.toLowerCase().endsWith('.png') && !customUrl.toLowerCase().startsWith('http') && (
             <div className="form-hint" style={{ color: 'var(--red)', marginTop: 4 }}>
-              Ссылка должна начинаться с http:// или https:// и заканчиваться на .png
+              {t('customUrlHint')}
             </div>
           )}
         </div>
@@ -216,10 +215,8 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div className="accounts-right-title font-bold text-[14px]">Системы скинов</div>
-          <div className="accounts-right-desc">
-            Подключите сервисы и выберите главный, который отобразится в игре.
-          </div>
+          <div className="accounts-right-title font-bold text-[14px]">{t('skinSystems')}</div>
+          <div className="accounts-right-desc">{t('skinSystemsDesc')}</div>
         </div>
         {saving && <Loader size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-bright)' }} />}
       </div>
@@ -262,21 +259,14 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
                     </span>
                   </div>
 
-                  <button
-                    className={`btn btn-sm ${isMain ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{
-                      padding: '4px 8px',
-                      fontSize: 10,
-                      borderRadius: 12,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 4
-                    }}
-                    onClick={() => handleSetMain(srv.id)}
-                  >
-                    <Crown size={10} style={{ fill: isMain ? 'currentColor' : 'none' }} />
-                    {isMain ? 'Главный' : 'Сделать главным'}
-                  </button>
+                    <button
+                      className={`btn btn-sm ${isMain ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ padding: '4px 8px', fontSize: 10, borderRadius: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                      onClick={() => handleSetMain(srv.id)}
+                    >
+                      <Crown size={10} style={{ fill: isMain ? 'currentColor' : 'none' }} />
+                      {isMain ? t('skinServicePrimary') : t('skinServiceSetPrimary')}
+                    </button>
                 </div>
 
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginLeft: 26 }}>
@@ -379,7 +369,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
     try {
       await invoke('set_active_account', { accountId: id });
       onRefresh();
-      addToast('Активный аккаунт обновлён', 'success');
+      addToast(t('activeAccountUpdated'), 'success');
     } catch (err) {
       addToast(String(err), 'error');
     }
@@ -390,7 +380,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
     try {
       await invoke('remove_account', { accountId: id });
       onRefresh();
-      addToast(`Аккаунт "${name}" удалён`, 'success');
+      addToast(t('accountRemoved'), 'success');
     } catch (err) {
       addToast(String(err), 'error');
     } finally {
@@ -412,10 +402,10 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
         </div>
         <div className="empty-state fade-in-up" style={{ animationDelay: '60ms' }}>
           <div className="empty-icon"><Users size={48} opacity={0.5} /></div>
-          <div className="empty-title">Аккаунтов пока нет</div>
-          <div className="empty-desc">Добавьте оффлайн-аккаунт, чтобы начать играть в Minecraft.</div>
+          <div className="empty-title">{t('noAccounts')}</div>
+          <div className="empty-desc">{t('noAccountsDesc')}</div>
           <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-            <Plus size={16} /> Добавить первый аккаунт
+            <Plus size={16} /> {t('addFirstAccount')}
           </button>
         </div>
         {showAdd && <AddAccountModal onClose={() => setShowAdd(false)} onCreated={() => { setShowAdd(false); onRefresh(); }} />}
@@ -433,7 +423,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
           <div className="accounts-main-card-header">
             <div className="accounts-active-badge">
               <div className="status-dot online" style={{ width: 6, height: 6 }} />
-              Активный аккаунт
+              {t('activeAccount')}
             </div>
             <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(true)}>
               <Plus size={13} /> {t('addAccount')}
@@ -462,8 +452,8 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
             <div className="accounts-main-name">{active?.username ?? '—'}</div>
             <div className="accounts-main-type">
               {active?.account_type === 'offline'
-                ? <><Lock size={12} /> Пиратка (Offline)</>
-                : <><Key size={12} /> Лицензия (Microsoft)</>}
+                ? <><Lock size={12} /> {t('accountTypeOffline')}</>
+                : <><Key size={12} /> {t('accountTypeMicrosoft')}</>}
             </div>
             <div className="accounts-main-uuid">
               <span style={{ color: 'var(--text-muted)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 1 }}>UUID</span>
@@ -477,7 +467,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
                 onClick={() => active && handleRemove(active.id, active.username)}
                 disabled={removing === active?.id}
               >
-                {removing === active?.id ? '…' : <><Trash2 size={13} /> Удалить</>}
+                {removing === active?.id ? '…' : <><Trash2 size={13} /> {t('deleteAccount')}</>}
               </button>
             </div>
           </div>
@@ -486,7 +476,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
         {/* Other accounts list */}
         {otherAccounts.length > 0 && (
           <div className="accounts-others-block fade-in-up" style={{ animationDelay: '80ms' }}>
-            <div className="accounts-others-title">Другие аккаунты</div>
+            <div className="accounts-others-title">{t('otherAccounts')}</div>
             <div className="accounts-others-list">
               {visibleOthers.map((acc, idx) => (
                 <div
@@ -509,7 +499,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
                       style={{ width: 28, height: 28 }}
                       disabled={removing === acc.id}
                       onClick={() => handleRemove(acc.id, acc.username)}
-                      title="Удалить"
+                      title={t('deleteAccount')}
                     >
                       {removing === acc.id ? '…' : <Trash2 size={12} />}
                     </button>
@@ -518,13 +508,10 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
               ))}
             </div>
             {otherAccounts.length > 3 && (
-              <button
-                className="accounts-expand-btn"
-                onClick={() => setListExpanded(e => !e)}
-              >
+              <button className="accounts-expand-btn" onClick={() => setListExpanded(e => !e)}>
                 {listExpanded
-                  ? <><ChevronUp size={14} /> Скрыть</>
-                  : <><ChevronDown size={14} /> Ещё {otherAccounts.length - 3} аккаунта</>}
+                  ? <><ChevronUp size={14} /> {t('hideList')}</>
+                  : <><ChevronDown size={14} /> {t('showMore').replace('{n}', otherAccounts.length - 3)}</>}
               </button>
             )}
           </div>

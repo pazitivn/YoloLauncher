@@ -35,13 +35,13 @@ export default function InstanceViewPage({ instance, onBack, onInstanceUpdate })
   const [activeTab, setActiveTab] = useState('home');
 
   const tabs = [
-    { id:'home',          icon:<Home size={16}/>,          label:'Обзор' },
+    { id:'home',          icon:<Home size={16}/>,          label:t('tabOverview') },
     { id:'settings',      icon:<SettingsIcon size={16}/>,  label:t('settings') },
-    { id:'mods',          icon:<Package size={16}/>,       label:'Моды' },
-    { id:'resourcepacks', icon:<Layers size={16}/>,        label:'Ресурспаки' },
-    { id:'shaders',       icon:<ImageIcon size={16}/>,     label:'Шейдеры' },
-    { id:'worlds',        icon:<Globe2 size={16}/>,        label:'Миры' },
-    { id:'screenshots',   icon:<Camera size={16}/>,        label:'Скриншоты' },
+    { id:'mods',          icon:<Package size={16}/>,       label:t('tabMods') },
+    { id:'resourcepacks', icon:<Layers size={16}/>,        label:t('tabResourcepacks') },
+    { id:'shaders',       icon:<ImageIcon size={16}/>,     label:t('tabShaders') },
+    { id:'worlds',        icon:<Globe2 size={16}/>,        label:t('tabWorlds') },
+    { id:'screenshots',   icon:<Camera size={16}/>,        label:t('tabScreenshots') },
   ];
 
   return (
@@ -146,7 +146,7 @@ function InstanceHomeTab({ instance, onInstanceUpdate }) {
         openConsole:instance.open_console, description:description||null,
       });
       onInstanceUpdate(updated);
-      addToast('Описание сохранено', 'success');
+      addToast(t('descriptionSaved'), 'success');
     } catch (e) { addToast(String(e),'error'); } finally { setSavingDesc(false); }
   }
 
@@ -157,18 +157,18 @@ function InstanceHomeTab({ instance, onInstanceUpdate }) {
       {/* Hero card */}
       <div style={{ padding:22, borderRadius:16, border:'1px solid var(--border)', background:'linear-gradient(135deg,color-mix(in srgb,var(--accent) 5%,var(--bg-elevated)),var(--bg-elevated))' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
-          <InfoField label="Дата создания" value={fmtDate(instance.created_at)} />
-          <InfoField label="Последняя игра" value={fmtDateTime(instance.last_played)} />
-          <InfoField label="Версия" value={`${instance.minecraft_version} · ${loaderName}${instance.loader_version ? ' '+instance.loader_version : ''}`} />
+          <InfoField label={t('createdAt')} value={fmtDate(instance.created_at)} />
+          <InfoField label={t('lastPlayed')} value={fmtDateTime(instance.last_played)} />
+          <InfoField label={t('version')} value={`${instance.minecraft_version} · ${loaderName}${instance.loader_version ? ' '+instance.loader_version : ''}`} />
         </div>
       </div>
 
       {/* Description */}
       <div>
-        <label className="form-label" style={{ marginBottom:8 }}>Описание</label>
+        <label className="form-label" style={{ marginBottom:8 }}>{t('description')}</label>
         <textarea
           className="form-input"
-          placeholder="Заметки об этой сборке, список модов, цель…"
+          placeholder={t('descriptionPlaceholder')}
           value={description}
           onChange={e => setDescription(e.target.value)}
           rows={4}
@@ -176,7 +176,7 @@ function InstanceHomeTab({ instance, onInstanceUpdate }) {
         />
         <div style={{ display:'flex', justifyContent:'flex-end', marginTop:8 }}>
           <button className="btn btn-primary btn-sm" onClick={saveDescription} disabled={savingDesc || description===(instance.description||'')}>
-            <Save size={13}/> Сохранить
+            <Save size={13}/> {t('save')}
           </button>
         </div>
       </div>
@@ -203,7 +203,7 @@ function InstanceHomeTab({ instance, onInstanceUpdate }) {
       {/* Open folder button */}
       <button className="btn btn-secondary" style={{ alignSelf:'flex-start', gap:6, fontSize:12 }}
         onClick={() => invoke('open_instance_folder', { instanceName:instance.name, customPath:instance.custom_path||null, subFolder:null })}>
-        <FolderOpen size={13}/> Открыть папку сборки
+        <FolderOpen size={13}/> {t('openInstanceFolder')}
       </button>
     </div>
   );
@@ -331,7 +331,8 @@ function InstanceSettingsTab({ instance, onInstanceUpdate }) {
           <label className="form-label" style={{ display:'flex', justifyContent:'space-between' }}>
             {t('gameVersion')}
             <label style={{ fontSize:9, color:'var(--text-muted)', cursor:'pointer', display:'flex', alignItems:'center', gap:3 }}>
-              <input type="checkbox" checked={snapshots} onChange={e=>setSnapshots(e.target.checked)} style={{ transform:'scale(0.8)' }}/> снапшоты
+              <input type="checkbox" checked={snapshots} onChange={e=>setSnapshots(e.target.checked)} style={{ transform:'scale(0.8)' }}/>
+              {t('snapshots')}
             </label>
           </label>
           <select className="form-select" value={selectedVersion} onChange={e=>setSelectedVersion(e.target.value)} disabled={fetchingVersions}>

@@ -35,3 +35,6 @@ Desktop.ini
 
 # Temp / helper files
 help.txt
+
+publish_release.ps1
+release_upload.ps1

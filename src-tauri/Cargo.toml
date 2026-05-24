@@ -1,0 +1,43 @@
+[package]
+name = "yolo-launcher"
+version = "0.1.0"
+description = "YoloLauncher - The Ultimate Minecraft Launcher"
+authors = ["YoloLauncher Team"]
+edition = "2021"
+
+[lib]
+name = "yolo_launcher_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-store = "2"
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reqwest = { version = "0.12", features = ["json", "stream"] }
+tokio = { version = "1", features = ["full"] }
+uuid = { version = "1", features = ["v4"] }
+sha1 = { version = "0.10", features = ["oid"] }
+hex = "0.4"
+anyhow = "1"
+futures = "0.3"
+dirs = "5"
+chrono = { version = "0.4", features = ["serde"] }
+zip = "0.6"
+lazy_static = "1"
+base64 = "0.22"
+rsa = { version = "0.9", features = ["sha2", "pem"] }
+
+sha2 = "0.10"
+urlencoding = "2.1"
+rand = "0.8"
+
+
+

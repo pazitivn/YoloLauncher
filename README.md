@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="logo.png" width="140" alt="YoloLauncher Logo" />
+<img src="assets/logo.png" width="140" alt="YoloLauncher Logo" />
 
 # YoloLauncher
 

@@ -441,7 +441,7 @@ export default function AccountsPage({ accounts, activeAccount, onRefresh }) {
             <button
               className="skin-fullscreen-btn"
               onClick={() => setFullscreen(true)}
-              title="На весь экран"
+              title={t('fullscreen')}
             >
               <Maximize2 size={14} />
             </button>

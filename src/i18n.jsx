@@ -88,6 +88,31 @@ const T = {
     descriptionSaved:"Description saved",
     openInstanceFolder:"Open instance folder",
     snapshots:"Snapshots",
+    fullscreen:"Fullscreen",
+    // ContentTabs
+    noResourcepacks:"No resource packs",noShaders:"No shaders",noWorlds:"No worlds",
+    openResourcepacks:"Open resource packs folder",openShaders:"Open shaders folder",openWorlds:"Open worlds folder",
+    deleteResourcepack:"Delete resource pack",deleteShader:"Delete shader",deleteWorld:"Delete world (irreversible!)",
+    confirmDelete:"Delete",confirmTitle:"Confirm",
+    shaderModMissing:"No shader mod found. We recommend",shaderModFor:"for this instance.",
+    lastPlayed2:"Last played",created2:"Created",
+    // ModsTab
+    searchMods:"Search mods…",sortAlpha:"Alphabetical",sortNewest:"Newest first",
+    sortOldest:"Oldest first",sortSize:"Largest first",
+    noMods:"No mods",noModsFound:"Nothing found",
+    modsDropHint:"Drop .jar files\nor click to select",openModsFolder:"Open folder",
+    modDisabled:"Disabled",modCount:"{n} mod(s)",deleteMod:"Delete mod",
+    errorLoadingMods:"Failed to load mods",errorGeneric:"Error",
+    // ScreenshotsTab
+    deleteScreenshot:"Delete screenshot",screenshotCount:"{n} screenshot(s)",
+    // SettingsPage
+    accentPreview:"Preview button",controlsSection:"Controls",
+    mouseNavLabel:"Mouse buttons 4 & 5 navigation",
+    mouseNavDesc:"Side mouse buttons navigate between sections (back / forward)",
+    launchEngineSection:"Launch Engine",pmcDesc:"Reliable Python-based Minecraft launcher. Properly handles usernames, assets, Fabric, etc.",
+    pmcChecking:"Checking\u2026",pmcReady2:"Ready",pmcInstall:"Install",
+    pmcInstallError:"Install error",pmcRetry:"Retry",
+    pmcInstalled:"\u2713 Python + PortableMC installed. Game launch will work correctly.",
   },
   ru: {
     instances:"Сборки",accounts:"Аккаунты",settings:"Настройки",home:"Главная",servers:"Серверы",
@@ -175,6 +200,31 @@ const T = {
     descriptionSaved:"Описание сохранено",
     openInstanceFolder:"Открыть папку сборки",
     snapshots:"Снапшоты",
+    fullscreen:"На весь экран",
+    // ContentTabs
+    noResourcepacks:"Ресурспаков нет",noShaders:"Шейдеров нет",noWorlds:"Миров нет",
+    openResourcepacks:"Открыть ресурспаки",openShaders:"Открыть шейдеры",openWorlds:"Открыть миры",
+    deleteResourcepack:"Удалить ресурспак",deleteShader:"Удалить шейдер",deleteWorld:"Удалить мир (необратимо!)",
+    confirmDelete:"Удалить",confirmTitle:"Удаление",
+    shaderModMissing:"Мод для обработки шейдеров не найден. Рекомендуем",shaderModFor:"для этой сборки.",
+    lastPlayed2:"Последняя игра",created2:"Создан",
+    // ModsTab
+    searchMods:"Поиск модов…",sortAlpha:"По алфавиту",sortNewest:"Сначала новые",
+    sortOldest:"Сначала старые",sortSize:"Сначала большие",
+    noMods:"Модов нет",noModsFound:"Ничего не найдено",
+    modsDropHint:"Перетащите .jar файлы\nили нажмите для выбора",openModsFolder:"Открыть папку",
+    modDisabled:"Отключён",modCount:"{n} мод(а/ов)",deleteMod:"Удалить мод",
+    errorLoadingMods:"Ошибка загрузки модов",errorGeneric:"Ошибка",
+    // ScreenshotsTab
+    deleteScreenshot:"Удалить скриншот",screenshotCount:"{n} скриншот(а/ов)",
+    // SettingsPage
+    accentPreview:"Превью кнопки",controlsSection:"Управление",
+    mouseNavLabel:"Навигация кнопками мыши 4 и 5",
+    mouseNavDesc:"Боковые кнопки мыши переключают разделы (назад / вперёд)",
+    launchEngineSection:"Движок запуска",pmcDesc:"Надёжный Python-инструмент для запуска Minecraft. Правильно обрабатывает ники, ресурсы, Fabric и т.д.",
+    pmcChecking:"Проверка…",pmcReady2:"Готово",pmcInstall:"Установить",
+    pmcInstallError:"Ошибка установки",pmcRetry:"Повторить",
+    pmcInstalled:"✓ Python + PortableMC установлены. Запуск игры будет работать корректно.",
   }
 };
 

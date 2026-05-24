@@ -6,13 +6,9 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { Loader2, FolderOpen, Upload, Trash2, Package, Search, SortAsc } from 'lucide-react';
 import { McText } from '../../utils/minecraftColors';
 import { useToast } from '../../components/ToastProvider';
+import { useTranslation } from '../../i18n';
 
-const SORT_OPTIONS = [
-  { value: 'alpha',  label: 'По алфавиту' },
-  { value: 'newest', label: 'Сначала новые' },
-  { value: 'oldest', label: 'Сначала старые' },
-  { value: 'size',   label: 'Сначала большие' },
-];
+const SORT_KEYS = ['alpha','newest','oldest','size'];
 
 function sortMods(mods, sort) {
   const arr = [...mods];
@@ -26,6 +22,7 @@ function sortMods(mods, sort) {
 export default function ModsTab({ instance }) {
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const { t } = useTranslation();
   const [mods, setMods]       = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch]   = useState('');
@@ -42,7 +39,7 @@ export default function ModsTab({ instance }) {
         customPath: instance.custom_path || null,
       });
       setMods(data);
-    } catch (e) { addToast('Ошибка загрузки модов: ' + e, 'error'); }
+    } catch (e) { addToast(t('errorLoadingMods') + ': ' + e, 'error'); }
     finally { setLoading(false); }
   }
 
@@ -75,7 +72,7 @@ export default function ModsTab({ instance }) {
       setFlashGreen(true);
       setTimeout(() => setFlashGreen(false), 900);
       await load();
-    } catch (e) { addToast('Ошибка: ' + e, 'error'); }
+    } catch (e) { addToast(t('errorGeneric') + ': ' + e, 'error'); }
   }
 
   async function handlePickFiles() {
@@ -88,16 +85,16 @@ export default function ModsTab({ instance }) {
     try {
       const enabled = await invoke('toggle_mod', { modPath: mod.path });
       setMods(prev => prev.map(m => m.path === mod.path ? { ...m, enabled, path: enabled ? mod.path.replace('.jar.disabled','.jar') : mod.path + '.disabled' } : m));
-    } catch (e) { addToast('Ошибка: ' + e, 'error'); }
+    } catch (e) { addToast(t('errorGeneric') + ': ' + e, 'error'); }
   }
 
   async function handleDelete(mod) {
-    const yes = await confirm(`Удалить мод "${mod.name}"?`, { title: 'Удаление', kind: 'warning' });
+    const yes = await confirm(`${t('deleteMod')} "${mod.name}"?`, { title: t('confirmTitle'), kind: 'warning' });
     if (!yes) return;
     try {
       await invoke('delete_content_file', { filePath: mod.path });
       setMods(prev => prev.filter(m => m.path !== mod.path));
-    } catch (e) { addToast('Ошибка: ' + e, 'error'); }
+    } catch (e) { addToast(t('errorGeneric') + ': ' + e, 'error'); }
   }
 
   const filtered = sortMods(
@@ -113,11 +110,11 @@ export default function ModsTab({ instance }) {
         <div style={{ display: 'flex', gap: 8 }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input className="form-input" placeholder="Поиск модов…" value={search} onChange={e => setSearch(e.target.value)}
+            <input className="form-input" placeholder={t('searchMods')} value={search} onChange={e => setSearch(e.target.value)}
               style={{ paddingLeft: 30, height: 34, fontSize: 12 }} />
           </div>
           <select className="form-select" value={sort} onChange={e => setSort(e.target.value)} style={{ width: 160, height: 34, fontSize: 12 }}>
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            {SORT_KEYS.map(k => <option key={k} value={k}>{t('sort'+k.charAt(0).toUpperCase()+k.slice(1))}</option>)}
           </select>
         </div>
 
@@ -128,8 +125,8 @@ export default function ModsTab({ instance }) {
           </div>
         ) : filtered.length === 0 ? (
           <div className="empty-state"><div className="empty-icon"><Package size={40} opacity={0.4}/></div>
-            <div className="empty-title">{search ? 'Ничего не найдено' : 'Модов нет'}</div>
-            <div className="empty-desc">Перетащите .jar файлы или нажмите «Выбрать файлы»</div>
+            <div className="empty-title">{search ? t('noModsFound') : t('noMods')}</div>
+            <div className="empty-desc">{t('modsDropHint').split('\n').map((l,i)=><span key={i}>{l}{i===0&&<br/>}</span>)}</div>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto' }}>
@@ -161,7 +158,7 @@ export default function ModsTab({ instance }) {
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 8, marginTop: 2 }}>
                     {mod.version && <span>{mod.version}</span>}
                     <span>{mod.size_fmt}</span>
-                    {!mod.enabled && <span style={{ color: 'var(--yellow)' }}>Отключён</span>}
+                    {!mod.enabled && <span style={{ color: 'var(--yellow)' }}>{t('modDisabled')}</span>}
                   </div>
                 </div>
                 {/* Delete */}
@@ -183,7 +180,7 @@ export default function ModsTab({ instance }) {
       <div style={{ width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <button className="btn btn-secondary" style={{ width: '100%', gap: 6, fontSize: 12 }}
           onClick={() => invoke('open_instance_folder', { instanceName: instance.name, customPath: instance.custom_path || null, subFolder: 'mods' })}>
-          <FolderOpen size={13} /> Открыть папку
+          <FolderOpen size={13} /> {t('openModsFolder')}
         </button>
 
         {/* Drop zone */}
@@ -200,11 +197,11 @@ export default function ModsTab({ instance }) {
         >
           <Upload size={22} style={{ color: dragOver || flashGreen ? 'var(--accent)' : 'var(--text-muted)' }} />
           <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-            Перетащите .jar файлы<br />или нажмите для выбора
+            {t('modsDropHint').split('\n').map((l,i)=><span key={i}>{l}{i===0&&<br/>}</span>)}
           </div>
         </div>
         <div style={{ fontSize: 10, color: 'var(--text-muted)', textAlign: 'center' }}>
-          {mods.length} мод{mods.length === 1 ? '' : mods.length < 5 ? 'а' : 'ов'}
+          {t('modCount').replace('{n}', mods.length)}
         </div>
       </div>
     </div>

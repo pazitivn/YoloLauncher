@@ -3,10 +3,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { useDialog } from '../../components/DialogProvider';
 import { Loader2, FolderOpen, Trash2, Camera, X } from 'lucide-react';
 import { useToast } from '../../components/ToastProvider';
+import { useTranslation } from '../../i18n';
 
 export default function ScreenshotsTab({ instance }) {
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const { t } = useTranslation();
   const [shots, setShots]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
@@ -25,7 +27,7 @@ export default function ScreenshotsTab({ instance }) {
 
   async function del(shot, e) {
     e.stopPropagation();
-    const yes = await confirm(`Удалить скриншот "${shot.name}"?`, { title: 'Удаление', kind: 'warning' });
+    const yes = await confirm(`${t('deleteScreenshot')} "${shot.name}"?`, { title: t('confirmTitle'), kind: 'warning' });
     if (!yes) return;
     await invoke('delete_content_file', { filePath: shot.path }).catch(e => addToast(''+e,'error'));
     setShots(p => p.filter(x => x.path !== shot.path));
@@ -33,17 +35,17 @@ export default function ScreenshotsTab({ instance }) {
   }
 
   function fmtDate(iso) {
-    try { return new Intl.DateTimeFormat('ru',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(iso)); }
+    try { return new Intl.DateTimeFormat(undefined,{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(iso)); }
     catch { return iso; }
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{shots.length} скриншот{shots.length===1?'':shots.length<5?'а':'ов'}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('screenshotCount').replace('{n}', shots.length)}</span>
         <button className="btn btn-secondary" style={{ gap: 6, fontSize: 12 }}
           onClick={() => invoke('open_instance_folder', { instanceName: instance.name, customPath: instance.custom_path||null, subFolder: 'screenshots' })}>
-          <FolderOpen size={13} /> Открыть папку
+          <FolderOpen size={13} /> {t('openModsFolder')}
         </button>
       </div>
 
@@ -54,8 +56,8 @@ export default function ScreenshotsTab({ instance }) {
       ) : shots.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Camera size={40} opacity={0.4}/></div>
-          <div className="empty-title">Скриншотов нет</div>
-          <div className="empty-desc">Нажмите F2 в игре для создания скриншота</div>
+          <div className="empty-title">{t('noScreenshots')}</div>
+          <div className="empty-desc">F2</div>
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, overflowY:'auto', paddingBottom:8 }}>

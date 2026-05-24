@@ -402,7 +402,7 @@ function InstanceSettingsTab({ instance, onInstanceUpdate }) {
           <input type="checkbox" checked={openConsole} onChange={e=>setOpenConsole(e.target.checked)}
             onClick={e=>e.stopPropagation()} style={{ accentColor:'var(--accent)', width:14, height:14, cursor:'pointer' }}/>
           <span style={{ fontSize:13, color:openConsole?'var(--accent-bright)':'var(--text-secondary)', fontWeight:openConsole?600:400 }}>
-            {t('openConsoleAfterLaunch')||'Открывать окно логов после запуска'}
+            {t('openConsoleAfterLaunch')}
           </span>
         </div>
       </div>

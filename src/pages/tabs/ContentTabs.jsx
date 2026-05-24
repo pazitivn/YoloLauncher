@@ -4,31 +4,33 @@ import { useDialog } from '../../components/DialogProvider';
 import { Loader2, FolderOpen, Trash2, Layers, Image as ImageIcon, AlertTriangle } from 'lucide-react';
 import { McText } from '../../utils/minecraftColors';
 import { useToast } from '../../components/ToastProvider';
+import { useTranslation } from '../../i18n';
 
 // ─── Resource Packs ──────────────────────────────────────────────────────────
 export function ResourcePacksTab({ instance }) {
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const { t } = useTranslation();
   const [packs, setPacks] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     invoke('list_resourcepacks', { instanceName: instance.name, customPath: instance.custom_path || null })
-      .then(setPacks).catch(e => addToast('Ошибка: '+e,'error')).finally(() => setLoading(false));
+      .then(setPacks).catch(e => addToast(t('errorGeneric') + ': ' + e, 'error')).finally(() => setLoading(false));
   }, [instance.id]);
 
   async function del(pack) {
-    const yes = await confirm(`Удалить ресурспак "${pack.name}"?`, { title: 'Удаление', kind: 'warning' });
+    const yes = await confirm(`${t('deleteResourcepack')} "${pack.name}"?`, { title: t('confirmTitle'), kind: 'warning' });
     if (!yes) return;
-    await invoke('delete_content_file', { filePath: pack.path }).catch(e => addToast(''+e,'error'));
+    await invoke('delete_content_file', { filePath: pack.path }).catch(e => addToast('' + e, 'error'));
     setPacks(p => p.filter(x => x.path !== pack.path));
   }
 
-  return <GridTab items={packs} loading={loading} emptyIcon={<Layers size={40}/>} emptyTitle="Ресурспаков нет"
+  return <GridTab items={packs} loading={loading} emptyIcon={<Layers size={40}/>} emptyTitle={t('noResourcepacks')}
     renderCard={item => <ResourceCard item={item} onDelete={() => del(item)} />}
     onOpenFolder={() => invoke('open_instance_folder', { instanceName: instance.name, customPath: instance.custom_path||null, subFolder: 'resourcepacks' })}
-    folderLabel="Открыть ресурспаки" />;
+    folderLabel={t('openResourcepacks')} />;
 }
 
 function ResourceCard({ item, onDelete }) {
@@ -58,6 +60,7 @@ function ResourceCard({ item, onDelete }) {
 export function ShadersTab({ instance }) {
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const { t } = useTranslation();
   const [shaders, setShaders] = useState([]);
   const [mods, setMods]       = useState([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +71,7 @@ export function ShadersTab({ instance }) {
     Promise.all([
       invoke('list_shaders', { instanceName: instance.name, customPath: instance.custom_path||null }),
       invoke('list_mods',    { instanceName: instance.name, customPath: instance.custom_path||null }),
-    ]).then(([s, m]) => { setShaders(s); setMods(m); }).catch(e => addToast(''+e,'error')).finally(() => setLoading(false));
+    ]).then(([s, m]) => { setShaders(s); setMods(m); }).catch(e => addToast('' + e, 'error')).finally(() => setLoading(false));
   }, [instance.id]);
 
   const modNames = mods.map(m => m.name.toLowerCase());
@@ -76,9 +79,9 @@ export function ShadersTab({ instance }) {
   const recommended = (loader === 'forge') ? 'Oculus' : 'Iris';
 
   async function del(sh) {
-    const yes = await confirm(`Удалить шейдер "${sh.name}"?`, { title: 'Удаление', kind: 'warning' });
+    const yes = await confirm(`${t('deleteShader')} "${sh.name}"?`, { title: t('confirmTitle'), kind: 'warning' });
     if (!yes) return;
-    await invoke('delete_content_file', { filePath: sh.path }).catch(e => addToast(''+e,'error'));
+    await invoke('delete_content_file', { filePath: sh.path }).catch(e => addToast('' + e, 'error'));
     setShaders(p => p.filter(x => x.path !== sh.path));
   }
 
@@ -88,11 +91,11 @@ export function ShadersTab({ instance }) {
         <div style={{ padding: '12px 16px', borderRadius: 10, border: '1px solid rgba(251,191,36,.35)', background: 'rgba(251,191,36,.08)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <AlertTriangle size={16} color="var(--yellow)" />
           <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            Мод для обработки шейдеров не найден. Рекомендуем <strong style={{ color: 'var(--yellow)' }}>{recommended}</strong> для этой сборки.
+            {t('shaderModMissing')} <strong style={{ color: 'var(--yellow)' }}>{recommended}</strong> {t('shaderModFor')}
           </span>
         </div>
       )}
-      <ListTab items={shaders} loading={loading} emptyIcon={<ImageIcon size={40}/>} emptyTitle="Шейдеров нет"
+      <ListTab items={shaders} loading={loading} emptyIcon={<ImageIcon size={40}/>} emptyTitle={t('noShaders')}
         renderRow={item => (
           <div style={rowStyle} key={item.path}>
             <div style={{ flex: 1, fontSize: 13, fontWeight: 500 }}><McText text={item.name} /></div>
@@ -101,7 +104,7 @@ export function ShadersTab({ instance }) {
           </div>
         )}
         onOpenFolder={() => invoke('open_instance_folder', { instanceName: instance.name, customPath: instance.custom_path||null, subFolder: 'shaderpacks' })}
-        folderLabel="Открыть шейдеры" />
+        folderLabel={t('openShaders')} />
     </div>
   );
 }
@@ -110,29 +113,30 @@ export function ShadersTab({ instance }) {
 export function WorldsTab({ instance }) {
   const { addToast } = useToast();
   const { confirm } = useDialog();
+  const { t } = useTranslation();
   const [worlds, setWorlds] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     invoke('list_worlds', { instanceName: instance.name, customPath: instance.custom_path||null })
-      .then(setWorlds).catch(e => addToast(''+e,'error')).finally(() => setLoading(false));
+      .then(setWorlds).catch(e => addToast('' + e, 'error')).finally(() => setLoading(false));
   }, [instance.id]);
 
   async function del(w) {
-    const yes = await confirm(`Удалить мир "${w.name}"? Это действие необратимо!`, { title: 'Удаление', kind: 'warning' });
+    const yes = await confirm(`${t('deleteWorld').replace('(irreversible!)','').replace('(необратимо!)','').trim()} "${w.name}"?`, { title: t('confirmTitle'), kind: 'warning' });
     if (!yes) return;
-    await invoke('delete_content_file', { filePath: w.path }).catch(e => addToast(''+e,'error'));
+    await invoke('delete_content_file', { filePath: w.path }).catch(e => addToast('' + e, 'error'));
     setWorlds(p => p.filter(x => x.path !== w.path));
   }
 
-  return <GridTab items={worlds} loading={loading} emptyIcon={<span style={{fontSize:40}}>🌍</span>} emptyTitle="Миров нет"
-    renderCard={item => <WorldCard item={item} onDelete={() => del(item)} />}
+  return <GridTab items={worlds} loading={loading} emptyIcon={<span style={{fontSize:40}}>🌍</span>} emptyTitle={t('noWorlds')}
+    renderCard={item => <WorldCard item={item} onDelete={() => del(item)} t={t} />}
     onOpenFolder={() => invoke('open_instance_folder', { instanceName: instance.name, customPath: instance.custom_path||null, subFolder: 'saves' })}
-    folderLabel="Открыть миры" />;
+    folderLabel={t('openWorlds')} />;
 }
 
-function WorldCard({ item, onDelete }) {
+function WorldCard({ item, onDelete, t }) {
   return (
     <div style={cardStyle}>
       <div style={previewStyle}>
@@ -141,8 +145,8 @@ function WorldCard({ item, onDelete }) {
       </div>
       <div style={{ flex: 1, minWidth: 0, padding: '0 8px' }}>
         <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><McText text={item.name} /></div>
-        {item.last_played && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>Последняя игра: {fmtDate(item.last_played)}</div>}
-        {item.created_at  && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Создан: {fmtDate(item.created_at)}</div>}
+        {item.last_played && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>{t('lastPlayed2')}: {fmtDate(item.last_played)}</div>}
+        {item.created_at  && <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t('created2')}: {fmtDate(item.created_at)}</div>}
         <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{item.size_fmt}</div>
       </div>
       <DeleteBtn onClick={onDelete} />
@@ -152,7 +156,7 @@ function WorldCard({ item, onDelete }) {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
-  try { return new Intl.DateTimeFormat('ru',{day:'numeric',month:'short',year:'numeric'}).format(new Date(iso)); }
+  try { return new Intl.DateTimeFormat(undefined, {day:'numeric',month:'short',year:'numeric'}).format(new Date(iso)); }
   catch { return iso; }
 }
 
@@ -226,4 +230,3 @@ function ListTab({ items, loading, emptyIcon, emptyTitle, renderRow, onOpenFolde
     </div>
   );
 }
-

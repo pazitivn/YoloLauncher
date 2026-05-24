@@ -180,23 +180,21 @@ export default function SettingsPage() {
             display: 'flex', alignItems: 'center', gap: 8, userSelect: 'none',
           }}>
             <span>▶</span>
-            {lang === 'ru' ? 'Превью кнопки' : 'Preview button'}
+            {t('accentPreview')}
           </div>
         </div>
       </div>
 
       {/* Controls */}
       <div className="settings-section fade-in-up" style={{ animationDelay: '140ms' }}>
-        <div className="settings-section-title">{lang === 'ru' ? 'Управление' : 'Controls'}</div>
+        <div className="settings-section-title">{t('controlsSection')}</div>
         <div className="settings-row">
           <div>
             <div className="settings-row-label">
-              {lang === 'ru' ? 'Навигация кнопками мыши 4 и 5' : 'Mouse buttons 4 & 5 navigation'}
+              {t('mouseNavLabel')}
             </div>
             <div className="settings-row-desc">
-              {lang === 'ru'
-                ? 'Боковые кнопки мыши переключают разделы (назад / вперёд)'
-                : 'Side mouse buttons navigate between sections (back / forward)'}
+              {t('mouseNavDesc')}
             </div>
           </div>
           <button
@@ -220,29 +218,27 @@ export default function SettingsPage() {
       {/* PortableMC Engine */}
       <div className="settings-section fade-in-up" style={{ animationDelay: '180ms' }}>
         <div className="settings-section-title">
-          {lang === 'ru' ? 'Движок запуска' : 'Launch Engine'}
+          {t('launchEngineSection')}
         </div>
         <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
             <div style={{ flex: 1 }}>
               <div className="settings-row-label">PortableMC</div>
               <div className="settings-row-desc">
-                {lang === 'ru'
-                  ? 'Надёжный Python-инструмент для запуска Minecraft. Правильно обрабатывает ники, ресурсы, Fabric и т.д.'
-                  : 'Reliable Python-based Minecraft launcher. Properly handles usernames, assets, Fabric, etc.'}
+                {t('pmcDesc')}
               </div>
             </div>
             {/* Status badge */}
             {pmcReady === null && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-muted)', fontSize: 12 }}>
                 <Loader2 size={14} className="download-icon" />
-                {lang === 'ru' ? 'Проверка…' : 'Checking…'}
+                {t('pmcChecking')}
               </div>
             )}
             {pmcReady === true && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#22c55e', fontSize: 12, fontWeight: 700 }}>
                 <CheckCircle2 size={16} />
-                {lang === 'ru' ? 'Готово' : 'Ready'}
+                {t('pmcReady2')}
               </div>
             )}
             {pmcReady === false && !pmcInstalling && (
@@ -252,7 +248,7 @@ export default function SettingsPage() {
                 onClick={handleSetupPmc}
               >
                 <Download size={14} />
-                {lang === 'ru' ? 'Установить' : 'Install'}
+                {t('pmcInstall')}
               </button>
             )}
           </div>
@@ -282,7 +278,7 @@ export default function SettingsPage() {
           {pmcError && (
             <div style={{ width: '100%', padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', color: '#f87171', fontSize: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700, marginBottom: 4 }}>
-                <XCircle size={14} /> {lang === 'ru' ? 'Ошибка установки' : 'Install error'}
+                <XCircle size={14} /> {t('pmcInstallError')}
               </div>
               <div style={{ fontFamily: 'monospace', whiteSpace: 'pre-wrap', fontSize: 11 }}>{pmcError}</div>
               <button
@@ -290,16 +286,14 @@ export default function SettingsPage() {
                 style={{ marginTop: 10, fontSize: 11, padding: '4px 10px' }}
                 onClick={handleSetupPmc}
               >
-                {lang === 'ru' ? 'Повторить' : 'Retry'}
+                {t('pmcRetry')}
               </button>
             </div>
           )}
 
           {pmcReady === true && (
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-              {lang === 'ru'
-                ? '✓ Python + PortableMC установлены. Запуск игры будет работать корректно.'
-                : '✓ Python + PortableMC installed. Game launch will work correctly.'}
+              {t('pmcInstalled')}
             </div>
           )}
         </div>

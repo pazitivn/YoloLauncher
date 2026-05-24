@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="src-tauri/icons/icon.png" width="120" alt="YoloLauncher Logo" />
+<img src="logo.png" width="140" alt="YoloLauncher Logo" />
 
 # YoloLauncher
 

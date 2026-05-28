@@ -13,7 +13,7 @@
 
 **🌐 Language / Язык:** [English](#-english) | [Русский](#-русский)
 
-[📦 Download / Скачать](https://github.com/pazitivn/YoloLauncher/releases/latest) · [🐛 Report Bug](https://github.com/pazitivn/YoloLauncher/issues) · [💬 Discussions](https://github.com/pazitivn/YoloLauncher/discussions)
+[📦 Download / Скачать](https://github.com/pazitivn/YoloLauncher/releases/latest) · [🐛 Report Bug](https://github.com/pazitivn/YoloLauncher/issues)
 
 </div>
 

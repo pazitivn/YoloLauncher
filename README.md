@@ -6,14 +6,14 @@
 
 **Modern open-source Minecraft launcher / Современный Minecraft-лаунчер с открытым исходным кодом**
 
-[![Version](https://img.shields.io/badge/version-0.5.0--beta-blueviolet?style=for-the-badge)](https://github.com/pazitivn/YoloLauncher/releases)
+[![Version](https://img.shields.io/badge/version-0.5.2--beta-blueviolet?style=for-the-badge)](https://github.com/pazitivn/YoloLauncher/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue?style=for-the-badge&logo=windows)](https://github.com/pazitivn/YoloLauncher/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange?style=for-the-badge&logo=tauri)](https://tauri.app)
 
 **🌐 Language / Язык:** [English](#-english) | [Русский](#-русский)
 
-[📦 Download / Скачать](https://github.com/pazitivn/YoloLauncher/releases/latest) · [🐛 Report Bug](https://github.com/pazitivn/YoloLauncher/issues) · [💬 Discussions](https://github.com/pazitivn/YoloLauncher/discussions)
+[📦 Download / Скачать](https://github.com/pazitivn/YoloLauncher/releases/latest) · [🐛 Report Bug](https://github.com/pazitivn/YoloLauncher/issues)
 
 </div>
 

@@ -1,6 +1,6 @@
 [package]
 name = "yolo-launcher"
-version = "0.1.0"
+version = "0.5.3-beta"
 description = "YoloLauncher - The Ultimate Minecraft Launcher"
 authors = ["YoloLauncher Team"]
 edition = "2021"

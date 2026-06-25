@@ -66,12 +66,13 @@ export default function ScreenshotsTab({ instance }) {
               borderRadius: 12, border: '1px solid var(--border)',
               background: 'var(--bg-elevated)', overflow: 'hidden',
               cursor: 'pointer', transition: 'border-color .15s, transform .15s',
-              position: 'relative', display: 'flex', flexDirection: 'column'
+              position: 'relative', display: 'flex', flexDirection: 'column',
+              height: 200
             }}
               onMouseOver={e => { e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.transform='translateY(-2px)'; }}
               onMouseOut={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.transform='translateY(0)'; }}>
               {/* Image */}
-              <div style={{ aspectRatio:'16/9', background:'var(--bg-overlay)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ background:'var(--bg-overlay)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flex: 1 }}>
                 {shot.data
                   ? <img src={shot.data} alt={shot.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
                   : <Camera size={32} style={{ color:'var(--text-muted)' }} />}

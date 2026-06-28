@@ -8,6 +8,7 @@ pub mod paths;
 pub mod python;
 pub mod content;
 pub mod migration;
+pub mod servers;
 pub mod skins;
 
 use tauri::Manager;
@@ -23,14 +24,14 @@ pub fn run() {
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
             window.show().unwrap();
-            
+
             // Start local skin server on startup
             tauri::async_runtime::spawn(async {
                 if let Err(e) = skins::start_skin_server().await {
                     eprintln!("[skins] Failed to start skin server: {}", e);
                 }
             });
-            
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -76,9 +77,14 @@ pub fn run() {
             content::list_shaders,
             content::list_worlds,
             content::list_screenshots,
+            content::list_logs,
+            content::read_log_content,
             // Migration
             migration::scan_old_launchers,
             migration::migrate_data,
+            // Server commands
+            servers::load_servers_with_ping,
+            servers::refresh_single_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running YoloLauncher")

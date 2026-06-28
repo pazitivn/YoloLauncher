@@ -6046,16 +6046,18 @@ dependencies = [
 
 [[package]]
 name = "yolo-launcher"
-version = "0.5.3-beta"
+version = "0.7.0-beta"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
  "chrono",
  "dirs 5.0.1",
+ "flate2",
  "futures",
  "hex",
  "lazy_static",
  "rand 0.8.6",
+ "regex",
  "reqwest 0.12.28",
  "rsa",
  "serde",

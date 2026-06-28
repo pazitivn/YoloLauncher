@@ -1,12 +1,13 @@
 // content.rs — Commands for listing & managing per-instance content:
-// mods, resource packs, shader packs, worlds, screenshots.
+// mods, resource packs, shader packs, worlds, screenshots, logs.
 
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
-use std::io::Read;
+use std::io::{Read, BufReader, BufRead};
 use std::path::{Path, PathBuf};
 use base64::{Engine, engine::general_purpose::STANDARD};
 use zip::ZipArchive;
+use flate2::read::GzDecoder;
 
 use crate::paths::get_instance_dir;
 
@@ -588,4 +589,93 @@ pub async fn list_screenshots(
 
     shots.sort_by(|a, b| b.taken_at.cmp(&a.taken_at));
     Ok(shots)
+}
+
+// ─── LOGS ────────────────────────────────────────────────────────────────────
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct LogInfo {
+    pub name: String,
+    pub path: String,
+    pub size: u64,
+    pub size_fmt: String,
+    pub line_count: usize,
+    pub created_at: Option<String>,
+    pub is_compressed: bool,
+}
+
+#[tauri::command]
+pub async fn list_logs(
+    instance_name: String,
+    custom_path: Option<String>,
+) -> Result<Vec<LogInfo>, String> {
+    let logs_dir = instance_dir(&instance_name, custom_path.as_deref()).join("logs");
+    if !logs_dir.exists() { return Ok(vec![]); }
+
+    let mut logs = Vec::new();
+    for entry in fs::read_dir(&logs_dir).map_err(|e| e.to_string())? {
+        let entry = entry.map_err(|e| e.to_string())?;
+        let path = entry.path();
+        let file_name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        
+        let is_compressed = file_name.ends_with(".log.gz");
+        let is_log = file_name.ends_with(".log") || is_compressed;
+        
+        if !is_log { continue; }
+
+        let size = fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+        let created_at = fs::metadata(&path)
+            .ok()
+            .and_then(|m| m.created().ok())
+            .map(timestamp_to_iso);
+
+        // Count lines
+        let line_count = count_log_lines(&path, is_compressed);
+
+        logs.push(LogInfo {
+            name: file_name,
+            path: path.to_string_lossy().to_string(),
+            size,
+            size_fmt: fmt_bytes(size),
+            line_count,
+            created_at,
+            is_compressed,
+        });
+    }
+
+    logs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+    Ok(logs)
+}
+
+#[tauri::command]
+pub async fn read_log_content(
+    log_path: String,
+    is_compressed: bool,
+) -> Result<String, String> {
+    let path = PathBuf::from(&log_path);
+    
+    if is_compressed {
+        let file = File::open(&path).map_err(|e| e.to_string())?;
+        let decoder = GzDecoder::new(file);
+        let mut content = String::new();
+        BufReader::new(decoder).read_to_string(&mut content).map_err(|e| e.to_string())?;
+        Ok(content)
+    } else {
+        fs::read_to_string(&path).map_err(|e| e.to_string())
+    }
+}
+
+fn count_log_lines(path: &Path, is_compressed: bool) -> usize {
+    if is_compressed {
+        if let Ok(file) = File::open(path) {
+            let decoder = GzDecoder::new(file);
+            return BufReader::new(decoder).lines().count();
+        }
+        0
+    } else {
+        if let Ok(file) = File::open(path) {
+            return BufReader::new(file).lines().count();
+        }
+        0
+    }
 }

@@ -194,7 +194,9 @@ function AppInner() {
           {page === 'accounts' && !viewingInstance && (
             <AccountsPage accounts={accounts} activeAccount={activeAccount} onRefresh={refreshAccounts} />
           )}
-          {page === 'servers'  && !viewingInstance && <ServersPage />}
+          {page === 'servers'  && !viewingInstance && (
+            <ServersPage instances={instances} activeInstance={activeInstance} />
+          )}
           {page === 'settings' && !viewingInstance && <SettingsPage />}
         </main>
       </div>

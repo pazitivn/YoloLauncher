@@ -209,6 +209,9 @@ pub async fn launch_instance(
         }
     }
 
+    let behavior = launch_behavior.unwrap_or_else(|| "hide".to_string());
+    let should_open_console = open_console.unwrap_or(false);
+
     args.push(version_spec.clone());
 
     eprintln!(
@@ -219,9 +222,6 @@ pub async fn launch_instance(
         "[launch] account='{}' uuid='{}' version='{}'",
         account.username, account.uuid, version_spec
     );
-
-    let behavior = launch_behavior.unwrap_or_else(|| "hide".to_string());
-    let should_open_console = open_console.unwrap_or(false);
 
     // Notify frontend: open console if requested
     if should_open_console {

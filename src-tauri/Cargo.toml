@@ -1,6 +1,6 @@
 [package]
 name = "yolo-launcher"
-version = "0.5.3-beta"
+version = "0.7.0-beta"
 description = "YoloLauncher - The Ultimate Minecraft Launcher"
 authors = ["YoloLauncher Team"]
 edition = "2021"
@@ -34,10 +34,12 @@ zip = "0.6"
 lazy_static = "1"
 base64 = "0.22"
 rsa = { version = "0.9", features = ["sha2", "pem"] }
+flate2 = "1.0"
 
 sha2 = "0.10"
 urlencoding = "2.1"
 rand = "0.8"
+regex = "1"
 
 
 

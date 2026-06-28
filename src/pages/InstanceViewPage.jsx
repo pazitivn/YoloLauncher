@@ -7,11 +7,12 @@ import {
   ArrowLeft, Home, Settings as SettingsIcon, Package, Layers,
   Image as ImageIcon, Globe2, Camera, Zap, Leaf, Flame, Gem,
   Globe, Mountain, Sword, Crosshair, Skull, Moon, Save,
-  RefreshCw, AlertTriangle, FolderOpen,
+  RefreshCw, AlertTriangle, FolderOpen, FileText,
 } from 'lucide-react';
 import ModsTab from './tabs/ModsTab';
 import { ResourcePacksTab, ShadersTab, WorldsTab } from './tabs/ContentTabs';
 import ScreenshotsTab from './tabs/ScreenshotsTab';
+import LogsTab from './tabs/LogsTab';
 
 const INSTANCE_ICONS_MAP = {
   Zap:<Zap/>, Leaf:<Leaf/>, Flame:<Flame/>, Gem:<Gem/>,
@@ -42,6 +43,7 @@ export default function InstanceViewPage({ instance, onBack, onInstanceUpdate })
     { id:'shaders',       icon:<ImageIcon size={16}/>,     label:t('tabShaders') },
     { id:'worlds',        icon:<Globe2 size={16}/>,        label:t('tabWorlds') },
     { id:'screenshots',   icon:<Camera size={16}/>,        label:t('tabScreenshots') },
+    { id:'logs',          icon:<FileText size={16}/>,      label:t('tabLogs') },
   ];
 
   return (
@@ -85,6 +87,7 @@ export default function InstanceViewPage({ instance, onBack, onInstanceUpdate })
           {activeTab==='shaders'      && <ShadersTab instance={instance}/>}
           {activeTab==='worlds'       && <WorldsTab instance={instance}/>}
           {activeTab==='screenshots'  && <ScreenshotsTab instance={instance}/>}
+          {activeTab==='logs'         && <LogsTab instance={instance}/>}
         </div>
       </div>
     </div>

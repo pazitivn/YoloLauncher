@@ -38,3 +38,6 @@ help.txt
 
 publish_release.ps1
 release_upload.ps1
+
+AGENTS.md
+tech-spec.md

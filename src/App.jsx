@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { ToastProvider } from './components/ToastProvider';
+import { ToastProvider, useToast } from './components/ToastProvider';
 import { DialogProvider } from './components/DialogProvider';
 import { DownloadProvider } from './components/DownloadNotifications';
 import DownloadNotificationsDrawer from './components/DownloadNotificationsDrawer';
@@ -111,6 +111,7 @@ function AppInner() {
   const [showLanguageModal, setShowLanguageModal] = useState(true);
   const [showMigration, setShowMigration] = useState(true);
   const [updateDone, setUpdateDone] = useState(false);
+  const { addToast } = useToast();
 
   const historyRef    = useRef(['home']);
   const historyPosRef = useRef(0);
@@ -209,6 +210,20 @@ function AppInner() {
     const unlistenOpen  = listen('open-console',     () => openConsoleWindow());
     const unlistenCrash = listen('instance-crashed', () => openConsoleWindow());
 
+    // Check for updates triggered from tray menu
+    const unlistenCheckUpdates = listen('check-for-updates', async () => {
+      try {
+        const info = await invoke('check_for_update');
+        if (!info.available) {
+          addToast('Обновлений нет', 'info');
+        } else {
+          addToast('Найдено обновление, при следующем запуске лаунчера он будет обновлён', 'success');
+        }
+      } catch {
+        addToast('Проблемы с сетью при проверке', 'error');
+      }
+    });
+
     const handleRefresh = () => refreshInstances();
     window.addEventListener('yolo-refresh-instances', handleRefresh);
 
@@ -222,7 +237,7 @@ function AppInner() {
       window.removeEventListener('mousedown', handleMouseButton);
       window.removeEventListener('yolo-refresh-instances', handleRefresh);
       window.removeEventListener('focus', handleFocus);
-      [unlistenStart, unlistenStop, unlistenOpen, unlistenCrash]
+      [unlistenStart, unlistenStop, unlistenOpen, unlistenCrash, unlistenCheckUpdates]
         .forEach(p => p.then(f => f()));
     };
   }, [refreshAccounts, navigateBack, navigateForward]);

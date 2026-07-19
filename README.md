@@ -34,7 +34,6 @@
 <td>
 
 **👤 Accounts**
-- Microsoft OAuth (licensed)
 - Offline mode (no registration)
 - Multiple accounts simultaneously
 
@@ -145,7 +144,6 @@ Pull requests are welcome. For major changes, please open an Issue first.
 <td>
 
 **👤 Аккаунты**
-- Microsoft OAuth (лицензия)
 - Offline-режим (без регистрации)
 - Несколько аккаунтов одновременно
 

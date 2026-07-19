@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../i18n';
-import { applyAccent, applyTheme, listenSystemTheme } from '../App';
+import { applyAccent, applyTheme, listenSystemTheme, applyUiScale } from '../App';
 import { getSetting, setSetting } from '../utils/settings';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
@@ -178,10 +178,15 @@ export default function SettingsPage() {
     await setSetting(key, next);
   }
 
-  async function handleUiScaleChange(value) {
+  function handleUiScaleChange(value) {
+    setUiScale(Number(value));
+  }
+
+  function commitUiScale(value) {
     const v = Number(value);
     setUiScale(v);
-    await setSetting('ui_scale', v);
+    setSetting('ui_scale', v);
+    applyUiScale(v);
   }
 
   async function handleSpeedModeChange(value) {
@@ -366,6 +371,9 @@ export default function SettingsPage() {
               step="10"
               value={uiScale}
               onChange={e => handleUiScaleChange(e.target.value)}
+              onMouseUp={e => commitUiScale(e.target.value)}
+              onKeyUp={e => commitUiScale(e.target.value)}
+              onPointerUp={e => commitUiScale(e.target.value)}
               style={{ flex: 1, accentColor: 'var(--accent)' }}
             />
             <span style={{ fontSize: 11, color: 'var(--text-muted)', minWidth: 36 }}>200%</span>

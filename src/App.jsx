@@ -19,6 +19,7 @@ import { initStats, recordLaunchStop } from './utils/stats';
 import { loadAllSettings, getSetting } from './utils/settings';
 import { openConsoleWindow } from './utils/consoleWindow';
 import MigrationModal from './components/MigrationModal';
+import LanguageModal from './components/LanguageModal';
 import './index.css';
 
 function darkenHex(hex, amount = 40) {
@@ -63,6 +64,25 @@ export function applyTheme(theme) {
   }
 }
 
+// Apply UI scale as a zoom factor (50-200%)
+export function applyUiScale(percent) {
+  const factor = Math.max(0.5, Math.min(2, percent / 100));
+  document.documentElement.style.zoom = factor;
+  
+  // Принудительно меняем vw/vh на 100%, чтобы масштаб применялся к 
+  // логическому размеру документа, а не ломался об физический размер окна
+  document.documentElement.style.width = '100%';
+  document.documentElement.style.height = '100%';
+  document.body.style.width = '100%';
+  document.body.style.height = '100%';
+  
+  const root = document.getElementById('root');
+  if (root) {
+    root.style.width = '100%';
+    root.style.height = '100%';
+  }
+}
+
 // Track system color scheme so 'system' theme stays reactive
 let systemThemeListener = null;
 export function listenSystemTheme(themeSetting, applyFn) {
@@ -87,6 +107,7 @@ function AppInner() {
   const [viewingVersions, setViewingVersions] = useState(false);
   const [instances, setInstances]         = useState([]);
   const [runningIds, setRunningIds]       = useState(new Set());
+  const [showLanguageModal, setShowLanguageModal] = useState(true);
   const [showMigration, setShowMigration] = useState(true);
 
   const historyRef    = useRef(['home']);
@@ -152,7 +173,7 @@ function AppInner() {
     const handleContextMenu = (e) => e.preventDefault();
     document.addEventListener('contextmenu', handleContextMenu);
 
-    loadAllSettings().then(({ accent, theme }) => {
+    loadAllSettings().then(({ accent, theme, uiScale }) => {
       // Parse stored accent: single hex or 'pair:primary:secondary'
       let primary = accent, secondary = accent;
       if (typeof accent === 'string' && accent.startsWith('pair:')) {
@@ -162,6 +183,7 @@ function AppInner() {
       }
       applyAccent(primary, secondary);
       applyTheme(theme);
+      applyUiScale(uiScale || 100);
       listenSystemTheme(theme, applyTheme);
     });
 
@@ -216,7 +238,7 @@ function AppInner() {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" style={{ width: '100%', height: '100%' }}>
       <Titlebar />
       <div className="main-layout">
         <Sidebar
@@ -272,7 +294,11 @@ function AppInner() {
         </main>
       </div>
 
-      {showMigration && (
+      {showLanguageModal && (
+        <LanguageModal onComplete={() => setShowLanguageModal(false)} />
+      )}
+
+      {!showLanguageModal && showMigration && (
         <MigrationModal onComplete={(migrated) => {
           setShowMigration(false);
           if (migrated) {

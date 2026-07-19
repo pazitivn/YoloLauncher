@@ -338,6 +338,22 @@ export default function ConsoleApp() {
         document.documentElement.setAttribute('data-theme', th);
         setRefreshKey(v => v + 1);
       });
+
+      // Also load and apply UI scale
+      getSetting('ui_scale', 100).then(scale => {
+        const factor = Math.max(0.5, Math.min(2, Number(scale) / 100));
+        document.documentElement.style.zoom = factor;
+        
+        document.documentElement.style.width = '100%';
+        document.documentElement.style.height = '100%';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
+        const root = document.getElementById('root');
+        if (root) {
+          root.style.width = '100%';
+          root.style.height = '100%';
+        }
+      });
     });
   }, []);
 
@@ -485,7 +501,7 @@ export default function ConsoleApp() {
 
   return (
     <div key={refreshKey} style={{
-      width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
+      width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
       background: 'var(--bg-base)', color: 'var(--text-primary)', overflow: 'hidden',
       fontFamily: "'Inter',system-ui,sans-serif",
       border: '1px solid var(--border)', borderRadius: 10,

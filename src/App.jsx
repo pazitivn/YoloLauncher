@@ -20,6 +20,7 @@ import { loadAllSettings, getSetting } from './utils/settings';
 import { openConsoleWindow } from './utils/consoleWindow';
 import MigrationModal from './components/MigrationModal';
 import LanguageModal from './components/LanguageModal';
+import UpdateModal from './components/UpdateModal';
 import './index.css';
 
 function darkenHex(hex, amount = 40) {
@@ -109,6 +110,7 @@ function AppInner() {
   const [runningIds, setRunningIds]       = useState(new Set());
   const [showLanguageModal, setShowLanguageModal] = useState(true);
   const [showMigration, setShowMigration] = useState(true);
+  const [updateDone, setUpdateDone] = useState(false);
 
   const historyRef    = useRef(['home']);
   const historyPosRef = useRef(0);
@@ -239,6 +241,8 @@ function AppInner() {
 
   return (
     <div className="app-shell" style={{ width: '100%', height: '100%' }}>
+      {!updateDone && <UpdateModal onComplete={() => setUpdateDone(true)} />}
+
       <Titlebar />
       <div className="main-layout">
         <Sidebar

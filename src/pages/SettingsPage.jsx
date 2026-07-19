@@ -47,6 +47,7 @@ export default function SettingsPage() {
   const [discordRpc, setDiscordRpc] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [wipModal, setWipModal] = useState(false);
+  const [showUpdateWarning, setShowUpdateWarning] = useState(false);
 
   // PortableMC state
   const [pmcReady, setPmcReady] = useState(null); // null = checking, true/false
@@ -196,6 +197,16 @@ export default function SettingsPage() {
     await setSetting('speed_mode', value);
   }
 
+  async function handleConfirmDisableUpdates() {
+    setShowUpdateWarning(false);
+    // Turn off auto-update
+    setAutoUpdate(false);
+    await setSetting('auto_update', false);
+    // Also turn off and disable background update
+    setBgUpdate(false);
+    await setSetting('bg_update', false);
+  }
+
   if (!loaded) return null;
 
   function Toggle({ value, onChange }) {
@@ -319,16 +330,26 @@ export default function SettingsPage() {
             <div className="settings-row-label">{t('autoUpdateLabel')}</div>
             <div className="settings-row-desc">{t('autoUpdateDesc')}</div>
           </div>
-          <Toggle value={autoUpdate} onChange={() => handleToggle('auto_update', setAutoUpdate, autoUpdate)} />
+          <Toggle value={autoUpdate} onChange={() => {
+            if (autoUpdate) {
+              // Turning off — show warning modal
+              setShowUpdateWarning(true);
+            } else {
+              handleToggle('auto_update', setAutoUpdate, autoUpdate);
+            }
+          }} />
         </div>
 
         {/* Background update */}
-        <div className="settings-row">
+        <div className="settings-row" style={{ opacity: autoUpdate ? 1 : 0.4 }}>
           <div>
             <div className="settings-row-label">{t('bgUpdateLabel')}</div>
             <div className="settings-row-desc">{t('bgUpdateDesc')}</div>
           </div>
-          <Toggle value={bgUpdate} onChange={() => handleToggle('bg_update', setBgUpdate, bgUpdate)} />
+          <Toggle value={bgUpdate} onChange={() => {
+            if (!autoUpdate) return; // disabled when auto-update is off
+            handleToggle('bg_update', setBgUpdate, bgUpdate);
+          }} />
         </div>
 
         {/* System notifications */}
@@ -692,6 +713,60 @@ export default function SettingsPage() {
             >
               OK
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Update warning modal */}
+      {showUpdateWarning && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setShowUpdateWarning(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              background: 'var(--bg-surface)', borderRadius: 16,
+              padding: 32, maxWidth: 500, width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
+              <TriangleAlert size={28} style={{ color: 'var(--yellow, #eab308)', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+                  Не обесценивайте работу разработчика!
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Создатель лаунчера тратит огромное количество времени на поддержку лаунчера и создание новых фич. Если вы отключите проверку обновлений, вы не получите новые фичи, над которыми так долго работал программист.
+                </div>
+                <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.6, marginTop: 12, padding: '10px 14px', background: 'var(--bg-overlay)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                  Проверка обновлений не замедляет работу вашего устройства и не тратит место на диске.
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 24 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ padding: '10px 20px' }}
+                onClick={() => setShowUpdateWarning(false)}
+              >
+                Отмена
+              </button>
+              <button
+                className="btn btn-danger"
+                style={{ padding: '10px 20px' }}
+                onClick={handleConfirmDisableUpdates}
+              >
+                Всё равно отключить
+              </button>
+            </div>
           </div>
         </div>
       )}

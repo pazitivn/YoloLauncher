@@ -11,6 +11,7 @@ pub mod migration;
 pub mod servers;
 pub mod skins;
 pub mod tray;
+pub mod update;
 
 use tauri::Manager;
 
@@ -25,6 +26,9 @@ pub fn run() {
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
             window.show().unwrap();
+
+            // Clean up old YoloLauncher.old from a previous update
+            update::cleanup_old_version();
 
             // Start local skin server on startup
             tauri::async_runtime::spawn(async {
@@ -120,6 +124,11 @@ pub fn run() {
             servers::get_servers_summary,
             // Tray commands
             tray::set_tray_language,
+
+            // Update commands
+            update::check_for_update,
+            update::download_update,
+            update::apply_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running YoloLauncher")

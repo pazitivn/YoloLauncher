@@ -6,7 +6,7 @@
 
 **Modern open-source Minecraft launcher / Современный Minecraft-лаунчер с открытым исходным кодом**
 
-[![Version](https://img.shields.io/badge/version-0.5.2--beta-blueviolet?style=for-the-badge)](https://github.com/pazitivn/YoloLauncher/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0--beta-blueviolet?style=for-the-badge)](https://github.com/pazitivn/YoloLauncher/releases)
 [![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-blue?style=for-the-badge&logo=windows)](https://github.com/pazitivn/YoloLauncher/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange?style=for-the-badge&logo=tauri)](https://tauri.app)
@@ -31,14 +31,16 @@
 
 <table>
 <tr>
-<td>
+<td valign="top">
 
 **👤 Accounts**
 - Offline mode (no registration)
 - Multiple accounts simultaneously
 
-**🗂️ Instances**
+**🗂️ Instances & Versions**
 - Vanilla, Fabric, Forge, Quilt, NeoForge
+- Dedicated version manager & uninstaller
+- Smart migration & cleanup (TLauncher legacy)
 - Per-instance JVM and RAM settings
 - Custom install path
 
@@ -48,22 +50,23 @@
 - Second skin layer support
 
 </td>
-<td>
+<td valign="top">
 
-**📦 Content**
+**📦 Content & Multiplayer**
+- Servers tab with live ping & MOTD
 - Mods, resource packs, shaders manager
 - Worlds and screenshots management
 
-**💻 Console**
+**💻 Console & Logs**
 - Real-time Minecraft log viewer
+- Log file reader with syntax highlighting
 - Minecraft color codes (§-codes)
 
-**📊 Statistics**
-- Playtime, last launch date
-- Data persists between restarts
-
-**🔄 Migration**
-- Auto-import from TLauncher / SKLauncher
+**⚙️ System & QoL**
+- Auto-updates via GitHub
+- System tray & smart background mode
+- Non-blocking in-app downloads
+- Playtime & last launch date stats
 
 </td>
 </tr>
@@ -116,7 +119,10 @@
             ├── download.rs         # File downloader
             ├── skins.rs            # Skins
             ├── content.rs          # Mods, resource packs
-            ├── migration.rs        # Migration
+            ├── migration.rs        # Smart migration
+            ├── servers.rs          # Multiplayer servers
+            ├── updater.rs          # Auto-updates
+            ├── tray.rs             # System tray functionality
             └── java.rs             # Java management
 
 ### 🤝 Contributing
@@ -141,14 +147,16 @@ Pull requests are welcome. For major changes, please open an Issue first.
 
 <table>
 <tr>
-<td>
+<td valign="top">
 
 **👤 Аккаунты**
 - Offline-режим (без регистрации)
 - Несколько аккаунтов одновременно
 
-**🗂️ Инстансы**
+**🗂️ Инстансы и Версии**
 - Vanilla, Fabric, Forge, Quilt, NeoForge
+- Менеджер скачанных версий (просмотр веса/удаление)
+- Умная очистка и миграция от TLauncher
 - Индивидуальные настройки JVM и RAM
 - Кастомный путь установки
 
@@ -158,22 +166,23 @@ Pull requests are welcome. For major changes, please open an Issue first.
 - Поддержка второго слоя скина
 
 </td>
-<td>
+<td valign="top">
 
-**📦 Контент**
+**📦 Контент и Мультиплеер**
+- Вкладка Серверы с живым пингом и MOTD
 - Менеджер модов, ресурспаков, шейдеров
 - Управление мирами и скриншотами
 
-**💻 Консоль**
+**💻 Консоль и Логи**
 - Встроенный лог Minecraft в реальном времени
+- Просмотр лог-файлов с подсветкой синтаксиса
 - Minecraft-цветовая разметка (§-коды)
 
-**📊 Статистика**
-- Время в игре, дата последнего запуска
-- Данные хранятся между перезапусками
-
-**🔄 Миграция**
-- Автоимпорт из TLauncher / SKLauncher
+**⚙️ Система и Удобство**
+- Автообновления через GitHub
+- Системный трей и умная фоновая работа
+- Неблокирующие фоновые загрузки внутри приложения
+- Статистика: время в игре, дата последнего запуска
 
 </td>
 </tr>
@@ -226,7 +235,10 @@ Pull requests are welcome. For major changes, please open an Issue first.
             ├── download.rs         # Загрузка файлов
             ├── skins.rs            # Скины
             ├── content.rs          # Моды, ресурспаки
-            ├── migration.rs        # Миграция
+            ├── migration.rs        # Умная миграция
+            ├── servers.rs          # Мультиплеерные серверы
+            ├── updater.rs          # Автообновления
+            ├── tray.rs             # Функционал трея
             └── java.rs             # Java
 
 ### 🤝 Участие в разработке

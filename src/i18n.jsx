@@ -193,6 +193,18 @@ const T = {
     // Integration
     discordRPCLabel:"Discord Rich Presence",
     discordRPCDesc:"Show your launcher status (menu or game) in your Discord profile",
+    // About
+    aboutSection:"About Launcher",
+    aboutDesc:"The developer spends a lot of time developing new features and supporting the launcher. Support the developer by sending a star on Github 💜",
+    aboutDeveloper:"Developer",
+    aboutDiscord:"Discord",
+    aboutGithub:"GitHub",
+    aboutLauncher:"Launcher",
+    aboutVersion:"Version",
+    aboutRepository:"Repository",
+    // WIP modal
+    wipTitle:"In Development",
+    wipDesc:"This section is under active development. Parameter functionality will be added in upcoming updates.",
   },
   ru: {
     instances:"Сборки",accounts:"Аккаунты",settings:"Настройки",home:"Главная",servers:"Серверы",
@@ -384,6 +396,18 @@ const T = {
     // Integration
     discordRPCLabel:"Discord Rich Presence",
     discordRPCDesc:"Трансляция статуса лаунчера в ваш профиль Discord",
+    // About
+    aboutSection:"О лаунчере",
+    aboutDesc:"Разработчик тратит большое количество времени на разработку новых фич и поддержку лаунчера. Поддержите разработчика, отправив звезду на Github 💜",
+    aboutDeveloper:"Разработчик",
+    aboutDiscord:"Дискорд",
+    aboutGithub:"Гитхаб",
+    aboutLauncher:"Лаунчер",
+    aboutVersion:"Версия",
+    aboutRepository:"Репозиторий",
+    // WIP modal
+    wipTitle:"В разработке",
+    wipDesc:"Этот раздел находится в активной разработке. Работа параметров в нём будет добавлена в ближайших обновлениях.",
   }
 };
 

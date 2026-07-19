@@ -4,7 +4,8 @@ import { applyAccent, applyTheme, listenSystemTheme, applyUiScale } from '../App
 import { getSetting, setSetting } from '../utils/settings';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { CheckCircle2, XCircle, Download, Loader2, Info } from 'lucide-react';
+import { CheckCircle2, XCircle, Download, Loader2, Info, ExternalLink, TriangleAlert } from 'lucide-react';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 function darkenHex(hex, amount = 40) {
   const r = Math.max(0, parseInt(hex.slice(1,3), 16) - amount);
@@ -45,6 +46,7 @@ export default function SettingsPage() {
   const [speedMode, setSpeedMode] = useState('normal');
   const [discordRpc, setDiscordRpc] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [wipModal, setWipModal] = useState(false);
 
   // PortableMC state
   const [pmcReady, setPmcReady] = useState(null); // null = checking, true/false
@@ -276,7 +278,14 @@ export default function SettingsPage() {
 
       {/* ─── Launcher Behavior ──────────────────────────────────────── */}
       <div className="settings-section fade-in-up" style={{ animationDelay: '100ms' }}>
-        <div className="settings-section-title">{t('settingsSectionLauncher')}</div>
+        <div className="settings-section-title">
+          {t('settingsSectionLauncher')}
+          <TriangleAlert
+            size={14}
+            style={{ marginLeft: 6, cursor: 'pointer', color: 'var(--yellow, #eab308)', verticalAlign: 'middle' }}
+            onClick={() => setWipModal(true)}
+          />
+        </div>
 
         {/* Close action */}
         <div className="settings-row">
@@ -463,7 +472,14 @@ export default function SettingsPage() {
 
       {/* ─── Network & Downloads ─────────────────────────────────── */}
       <div className="settings-section fade-in-up" style={{ animationDelay: '200ms' }}>
-        <div className="settings-section-title">{t('settingsSectionNetwork')}</div>
+        <div className="settings-section-title">
+          {t('settingsSectionNetwork')}
+          <TriangleAlert
+            size={14}
+            style={{ marginLeft: 6, cursor: 'pointer', color: 'var(--yellow, #eab308)', verticalAlign: 'middle' }}
+            onClick={() => setWipModal(true)}
+          />
+        </div>
 
         <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
           <div>
@@ -493,7 +509,14 @@ export default function SettingsPage() {
 
       {/* ─── Integration ─────────────────────────────────────────── */}
       <div className="settings-section fade-in-up" style={{ animationDelay: '220ms' }}>
-        <div className="settings-section-title">{t('settingsSectionIntegration')}</div>
+        <div className="settings-section-title">
+          {t('settingsSectionIntegration')}
+          <TriangleAlert
+            size={14}
+            style={{ marginLeft: 6, cursor: 'pointer', color: 'var(--yellow, #eab308)', verticalAlign: 'middle' }}
+            onClick={() => setWipModal(true)}
+          />
+        </div>
 
         <div className="settings-row">
           <div>
@@ -583,6 +606,95 @@ export default function SettingsPage() {
           )}
         </div>
       </div>
+
+      {/* ─── About Launcher ─────────────────────────────────────── */}
+      <div className="settings-section fade-in-up" style={{ animationDelay: '260ms' }}>
+        <div className="settings-section-title">{t('aboutSection')}</div>
+        <div className="settings-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 500 }}>
+            {t('aboutDesc')}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 100 }}>{t('aboutDeveloper')}:</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>PaZiTiVnYY | Павел</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 100 }}>{t('aboutDiscord')}:</span>
+              <span
+                className="settings-link"
+                onClick={() => openUrl('https://discord.com/users/912366148408987659')}
+                style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                @pazitivn <ExternalLink size={12} />
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 100 }}>{t('aboutGithub')}:</span>
+              <span
+                className="settings-link"
+                onClick={() => openUrl('https://github.com/pazitivn/')}
+                style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                pazitivn <ExternalLink size={12} />
+              </span>
+            </div>
+            <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 100 }}>{t('aboutLauncher')}:</span>
+              <span style={{ color: 'var(--text-primary)' }}>{t('aboutVersion')} 0.9.0</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)', minWidth: 100 }}>{t('aboutRepository')}:</span>
+              <span
+                className="settings-link"
+                onClick={() => openUrl('https://github.com/pazitivn/YoloLauncher')}
+                style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              >
+                YoloLauncher <ExternalLink size={12} />
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* WIP Modal */}
+      {wipModal && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 1000,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+          }}
+          onClick={() => setWipModal(false)}
+        >
+          <div
+            className="modal-content"
+            style={{
+              background: 'var(--bg-surface)', borderRadius: 16,
+              padding: 32, maxWidth: 420, width: '90%',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <TriangleAlert size={24} style={{ color: 'var(--yellow, #eab308)' }} />
+              <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{t('wipTitle')}</div>
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 24 }}>
+              {t('wipDesc')}
+            </div>
+            <button
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '10px 0' }}
+              onClick={() => setWipModal(false)}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

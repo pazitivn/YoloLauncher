@@ -6046,7 +6046,7 @@ dependencies = [
 
 [[package]]
 name = "yolo-launcher"
-version = "0.7.2-beta"
+version = "0.9.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",

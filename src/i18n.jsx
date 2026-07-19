@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getSetting, setSetting } from './utils/settings';
+import { invoke } from '@tauri-apps/api/core';
 
 const T = {
   en: {
@@ -30,7 +31,7 @@ const T = {
     newsEmpty:"No news available",newsEmptyDesc:"Check your internet connection",
     readMore:"Read more",allNews:"All news",translated:"Translated",translating:"Translating…",
     readOnWeb:"Open in browser",backToNews:"Back to news",
-    serversTitle:"Servers",serversSubtitle:"Your multiplayer history",serversTeaser:"No history yet",
+    serversTitle:"Servers",serversSubtitle:"Your multiplayer history",serversTeaser:"No history yet",serversLastServer:"Last",serversAdded:"server(s)",
     serversComingSoon:"Servers feature coming soon",
     serversComingSoonDesc:"This section will show servers you've played on.",
     serversModNote:"Detailed server statistics are coming soon. Your data stays on this device.",
@@ -58,6 +59,8 @@ const T = {
     serversNoData:"No data",
     serversTimeout:"Server did not respond, try turning VPN off or on",
     serversTotalPlayHours:"Time on server",
+    serversUpdateJustNow:"Just now",
+    serversUpdateNoResponses:"No responses",
     open:"Open",
     appearanceSection:"Appearance",themeLabel:"Theme",themeDesc:"Switch between dark and light mode",
     themeDark:"Dark",themeLight:"Light",
@@ -76,7 +79,7 @@ const T = {
     launchBehaviorKeepOpen:"Keep open",
     launchBehaviorHide:"Minimize to tray, reopen after game",
     launchBehaviorClose:"Close completely",
-    openConsoleAfterLaunch:"Open console log window after launch",
+    openConsoleAfterLaunch:"Open console log window on launch",
     // Accounts page
     addOfflineAccount:"Add offline account",
     addOfflineAccountDesc:"Enter a Minecraft username. No Microsoft account required.",
@@ -141,6 +144,55 @@ const T = {
     pmcChecking:"Checking\u2026",pmcReady2:"Ready",pmcInstall:"Install",
     pmcInstallError:"Install error",pmcRetry:"Retry",
     pmcInstalled:"\u2713 Python + PortableMC installed. Game launch will work correctly.",
+    versionManagement:"Version Management",
+    versionsCount:"version(s)",
+    noVersionsInstalled:"No versions installed",
+    noVersionsInstalledDesc:"Download Minecraft versions to see them here.",
+    delete:"Delete",
+    deleteVersionConfirm:"Delete version \"{version}\"?",
+    deleteLoaderConfirm:"Delete all {loader} versions for {version}?",
+    deleteMcVersionConfirm:"Delete all versions for Minecraft {version}?",
+    manageVersionsBtn:"Manage Versions",
+    pmcInstallTitle:"Install PortableMC",
+    pmcInstallDesc:"PortableMC is required to launch Minecraft. The launcher will download Python and PortableMC automatically.",
+    pmcInstallBtn:"Install Engine",
+    pmcInstallProgress:"Installing PortableMC\u2026",
+    settingsSectionLanguage:"Language",
+    settingsSectionLauncher:"Launcher",
+    settingsSectionAppearance:"Appearance",
+    settingsSectionNetwork:"Network & Downloads",
+    settingsSectionIntegration:"Integration",
+    // Launcher behavior
+    closeActionLabel:"Close action",
+    closeActionDesc:"Close the program completely or minimize to system tray when pressing the close button",
+    closeActionTray:"Minimize to tray",
+    closeActionExit:"Exit completely",
+    gpuAccelLabel:"Hardware acceleration (GPU)",
+    gpuAccelDesc:"Enable GPU-powered interface rendering",
+    autoUpdateLabel:"Check for updates",
+    autoUpdateDesc:"Automatically search for new launcher releases on startup",
+    bgUpdateLabel:"Background update",
+    bgUpdateDesc:"Silently download new versions in the background and apply them on restart",
+    sysNotifyLabel:"System notifications",
+    sysNotifyDesc:"Native OS push notifications about completed downloads",
+    // Theme
+    themeSystem:"System",
+    // UI Scale
+    uiScaleLabel:"Interface scale",
+    uiScaleDesc:"Adjust element size for high-resolution screens",
+    // Network
+    speedLabel:"Download speed",
+    speedDesc:"Choose download speed mode",
+    speedEconomy:"Economy",
+    speedEconomyHint:"8 Мbit/s (1 МB/s) — saves bandwidth",
+    speedNormal:"Normal",
+    speedNormalHint:"Unlimited speed, single thread",
+    speedMultithreaded:"Multi-threaded",
+    speedMultithreadedHint:"6 threads simultaneously — requires a powerful CPU",
+    speedMultithreadedWarning:"Multi-threaded download requires a powerful CPU and stable internet connection.",
+    // Integration
+    discordRPCLabel:"Discord Rich Presence",
+    discordRPCDesc:"Show your launcher status (menu or game) in your Discord profile",
   },
   ru: {
     instances:"Сборки",accounts:"Аккаунты",settings:"Настройки",home:"Главная",servers:"Серверы",
@@ -153,7 +205,7 @@ const T = {
     gameVersion:"Версия игры",loaderVersion:"Версия загрузчика",techSettings:"Технические настройки",
     customPath:"Свой путь до папки (необязательно)",customJvm:"Свои аргументы JVM (необязательно)",
     cancel:"Отмена",create:"Создать сборку",edit:"Сохранить",editInstance:"Настройки сборки",
-    startDownload:"Установить",installing:"Установка...",ram:"ОЗУ",stop:"Стоп",
+    startDownload:"Загрузить",installing:"Установка...",ram:"ОЗУ",stop:"Стоп",
     nameRequired:"Введите название",selectVersion:"Выберите версию",snaps:"Снапшоты",browse:"Обзор",
     addAccount:"Добавить аккаунт",default:"По умолчанию",accountsSubtitle:"Управление вашими профилями Minecraft",
     accentColor:"Цвет интерфейса",accentDesc:"Выберите основной акцентный цвет",configure:"Настроить",
@@ -170,7 +222,7 @@ const T = {
     newsEmpty:"Нет доступных новостей",newsEmptyDesc:"Проверьте подключение к интернету",
     readMore:"Читать далее",allNews:"Все новости",translated:"Переведено",translating:"Перевод…",
     readOnWeb:"Открыть в браузере",backToNews:"Назад к новостям",
-    serversTitle:"Серверы",serversSubtitle:"История мультиплеера",serversTeaser:"История пуста",
+    serversTitle:"Серверы",serversSubtitle:"История мультиплеера",serversTeaser:"История пуста",serversLastServer:"Последний",serversAdded:"сервер(а/ов)",
     serversComingSoon:"Серверы — скоро",
     serversComingSoonDesc:"Здесь будут серверы, на которых вы играли.",
     serversModNote:"Детальная статистика по серверам появится здесь. Данные хранятся только на вашем устройстве.",
@@ -198,6 +250,8 @@ const T = {
     serversNoData:"Нет данных",
     serversTimeout:"Сервер не ответил, попробуйте выключить или включить VPN",
     serversTotalPlayHours:"Время на сервере",
+    serversUpdateJustNow:"Только что",
+    serversUpdateNoResponses:"Нет ответов",
     open:"Открыть",
     appearanceSection:"Внешний вид",themeLabel:"Тема",themeDesc:"Переключить тёмную и светлую тему",
     themeDark:"Тёмная",themeLight:"Светлая",
@@ -216,14 +270,14 @@ const T = {
     launchBehaviorKeepOpen:"Оставлять открытым",
     launchBehaviorHide:"Скрывать в трей, открывать после игры",
     launchBehaviorClose:"Закрывать полностью",
-    openConsoleAfterLaunch:"Открывать окно логов после запуска",
+    openConsoleAfterLaunch:"Открывать окно логов при запуске",
     // Accounts page
     addOfflineAccount:"Добавить оффлайн аккаунт",
     addOfflineAccountDesc:"Введите ник Minecraft. Без авторизации Microsoft.",
     nickname:"Никнейм",
     nicknameHint:"3–16 символов: буквы, цифры, подчёркивание.",
     adding:"Добавление…",add:"Добавить",
-    activeAccount:"Активный аккаунт",
+    activeAccount:"Активный акк.",
     noAccounts:"Аккаунтов пока нет",
     noAccountsDesc:"Добавьте оффлайн-аккаунт, чтобы начать играть в Minecraft.",
     addFirstAccount:"Добавить первый аккаунт",
@@ -281,6 +335,55 @@ const T = {
     pmcChecking:"Проверка…",pmcReady2:"Готово",pmcInstall:"Установить",
     pmcInstallError:"Ошибка установки",pmcRetry:"Повторить",
     pmcInstalled:"✓ Python + PortableMC установлены. Запуск игры будет работать корректно.",
+    versionManagement:"Управление версиями",
+    versionsCount:"версия(ий)",
+    noVersionsInstalled:"Нет установленных версий",
+    noVersionsInstalledDesc:"Скачайте версии Minecraft, чтобы они появились здесь.",
+    delete:"Удалить",
+    deleteVersionConfirm:"Удалить версию \"{version}\"?",
+    deleteLoaderConfirm:"Удалить все версии {loader} для {version}?",
+    deleteMcVersionConfirm:"Удалить все версии Minecraft {version}?",
+    manageVersionsBtn:"Управление версиями",
+    pmcInstallTitle:"Установка PortableMC",
+    pmcInstallDesc:"PortableMC необходим для запуска Minecraft. Лаунчер автоматически скачает Python и PortableMC.",
+    pmcInstallBtn:"Установить движок",
+    pmcInstallProgress:"Установка PortableMC\u2026",
+    settingsSectionLanguage:"Язык",
+    settingsSectionLauncher:"Работа лаунчера",
+    settingsSectionAppearance:"Внешний вид",
+    settingsSectionNetwork:"Сеть и загрузки",
+    settingsSectionIntegration:"Интеграция",
+    // Launcher behavior
+    closeActionLabel:"Действие при закрытии",
+    closeActionDesc:"Закрывать программу полностью или сворачивать в системный трей при нажатии на крестик окна",
+    closeActionTray:"Сворачивать в трей",
+    closeActionExit:"Закрывать полностью",
+    gpuAccelLabel:"Аппаратное ускорение (GPU)",
+    gpuAccelDesc:"Рендеринг интерфейса силами видеокарты",
+    autoUpdateLabel:"Проверка обновлений",
+    autoUpdateDesc:"Автоматический поиск новых релизов лаунчера при старте",
+    bgUpdateLabel:"Фоновое обновление",
+    bgUpdateDesc:"Тихое скачивание новых версий в фоне и применение при перезапуске",
+    sysNotifyLabel:"Системные уведомления",
+    sysNotifyDesc:"Нативные push-уведомления ОС о завершении загрузки",
+    // Theme
+    themeSystem:"Системная",
+    // UI Scale
+    uiScaleLabel:"Масштаб интерфейса",
+    uiScaleDesc:"Размер элементов интерфейса (полезно для экранов с высоким разрешением)",
+    // Network
+    speedLabel:"Скорость загрузки",
+    speedDesc:"Выберите режим скорости загрузки",
+    speedEconomy:"Экономия",
+    speedEconomyHint:"8 Мбит/с (1 МБ/с) — экономит трафик",
+    speedNormal:"Обычный",
+    speedNormalHint:"Без ограничений скорости, один поток",
+    speedMultithreaded:"Многопоточная",
+    speedMultithreadedHint:"6 потоков одновременно — требуется мощный процессор",
+    speedMultithreadedWarning:"Многопоточная загрузка требует мощного процессора и стабильного интернет-соединения.",
+    // Integration
+    discordRPCLabel:"Discord Rich Presence",
+    discordRPCDesc:"Трансляция статуса лаунчера в ваш профиль Discord",
   }
 };
 
@@ -295,12 +398,16 @@ export function LanguageProvider({ children }) {
     getSetting('lang', 'en').then(saved => {
       setLangState(saved);
       setReady(true);
+      // Sync language to tray menu
+      invoke('set_tray_language', { lang: saved }).catch(() => {});
     });
   }, []);
 
   const setLang = async (newLang) => {
     setLangState(newLang);
     await setSetting('lang', newLang);
+    // Sync language to tray menu
+    invoke('set_tray_language', { lang: newLang }).catch(() => {});
   };
 
   const t = (key) => T[lang]?.[key] || T.en[key] || key;

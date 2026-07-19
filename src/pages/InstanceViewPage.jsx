@@ -158,7 +158,7 @@ function InstanceHomeTab({ instance, onInstanceUpdate }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:18, paddingTop:8 }}>
       {/* Hero card */}
-      <div style={{ padding:22, borderRadius:16, border:'1px solid var(--border)', background:'linear-gradient(135deg,color-mix(in srgb,var(--accent) 5%,var(--bg-elevated)),var(--bg-elevated))' }}>
+      <div style={{ padding:22, borderRadius:16, border:'1px solid var(--border)', background:'linear-gradient(135deg,color-mix(in srgb,var(--accent-secondary) 5%,var(--bg-elevated)),var(--bg-elevated))' }}>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16 }}>
           <InfoField label={t('createdAt')} value={fmtDate(instance.created_at)} />
           <InfoField label={t('lastPlayed')} value={fmtDateTime(instance.last_played)} />
@@ -355,7 +355,7 @@ function InstanceSettingsTab({ instance, onInstanceUpdate }) {
 
       {/* Memory */}
       <div className="form-group">
-        <label className="form-label">{t('memory')}: <strong style={{color:'var(--accent-bright)'}}>{memory} MB</strong></label>
+        <label className="form-label">{t('memory')}: <strong style={{color:'var(--accent-secondary-bright)'}}>{memory} MB</strong></label>
         <input type="range" className="range-slider" min={512} max={16384} step={512} value={memory} onChange={e=>setMemory(Number(e.target.value))}/>
       </div>
 

@@ -107,7 +107,7 @@ export default function MigrationModal({ onComplete }) {
       animation: 'fadeIn 0.2s ease-out'
     }}>
       <div style={{
-        background: 'var(--bg-elevated)', border: '1px solid var(--border-accent)',
+        background: 'var(--bg-elevated)', border: '1px solid var(--border-accent-secondary)',
         borderRadius: 16, width: 480, maxWidth: '90vw',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: '0 20px 50px rgba(0,0,0,0.5)',

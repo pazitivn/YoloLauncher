@@ -9,7 +9,7 @@ export default function Titlebar() {
     <div className="titlebar">
       <div className="titlebar-logo">
         <div className="logo-dot" />
-        <span>YoloLauncher <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 4, fontWeight: 600 }}>v0.5 Beta</span></span>
+        <span>YoloLauncher <span style={{ opacity: 0.6, fontSize: 10, marginLeft: 4, fontWeight: 600 }}>v0.7.2</span></span>
       </div>
       <div className="titlebar-controls">
         <button className="titlebar-btn" onClick={() => appWindow.minimize().catch(console.error)} title="Minimize">

@@ -1,6 +1,6 @@
 // download.rs - Minecraft asset & jar downloading (supports loaders: Fabric, Quilt, Forge, NeoForge)
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter};
 use sha1::{Sha1, Digest};
@@ -9,6 +9,7 @@ use std::path::PathBuf;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadProgress {
     pub instance_id: String,
+    pub instance_name: String,
     pub stage: String,
     pub current: u64,
     pub total: u64,
@@ -126,6 +127,16 @@ struct LoaderLibrary {
 lazy_static::lazy_static! {
     static ref DOWNLOAD_PROGRESS: Arc<Mutex<HashMap<String, DownloadProgress>>> =
         Arc::new(Mutex::new(HashMap::new()));
+    static ref CANCEL_FLAGS: Arc<Mutex<HashSet<String>>> =
+        Arc::new(Mutex::new(HashSet::new()));
+}
+
+fn is_cancelled(instance_id: &str) -> bool {
+    CANCEL_FLAGS.lock().unwrap().contains(instance_id)
+}
+
+fn cleanup_cancel(instance_id: &str) {
+    CANCEL_FLAGS.lock().unwrap().remove(instance_id);
 }
 
 use crate::paths::{get_minecraft_dir, get_instance_dir};
@@ -260,20 +271,45 @@ pub async fn download_instance(
             custom_path.as_deref(), &version_id, &version_url,
             loader.as_deref(), loader_version.as_deref(),
         ).await;
-        if let Err(e) = result {
-            let mut map = DOWNLOAD_PROGRESS.lock().unwrap();
-            let progress = map.entry(instance_id_clone.clone()).or_insert_with(|| DownloadProgress {
-                instance_id: instance_id_clone.clone(),
-                stage: "Error".to_string(),
-                current: 0, total: 0, percent: 0.0, speed_kb: 0.0,
-                done: true, error: None,
-            });
-            progress.error = Some(e.to_string());
-            progress.done = true;
-            let _ = app_clone.emit("download-progress", progress.clone());
+        match result {
+            Ok(()) => {
+                cleanup_cancel(&instance_id_clone);
+            }
+            Err(e) => {
+                cleanup_cancel(&instance_id_clone);
+                let mut map = DOWNLOAD_PROGRESS.lock().unwrap();
+                let progress = map.entry(instance_id_clone.clone()).or_insert_with(|| DownloadProgress {
+                    instance_id: instance_id_clone.clone(),
+                    instance_name: instance_name_clone.clone(),
+                    stage: "Error".to_string(),
+                    current: 0, total: 0, percent: 0.0, speed_kb: 0.0,
+                    done: true, error: None,
+                });
+                progress.error = Some(e.to_string());
+                progress.done = true;
+                let _ = app_clone.emit("download-progress", progress.clone());
+            }
         }
     });
 
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cancel_download(instance_id: String) -> Result<(), String> {
+    CANCEL_FLAGS.lock().unwrap().insert(instance_id.clone());
+    // Emit a cancelled progress event so the frontend updates immediately
+    let progress = DownloadProgress {
+        instance_id: instance_id.clone(),
+        instance_name: String::new(),
+        stage: "Cancelled".to_string(),
+        current: 0, total: 0, percent: 0.0, speed_kb: 0.0,
+        done: true, error: Some("Cancelled by user".to_string()),
+    };
+    {
+        let mut map = DOWNLOAD_PROGRESS.lock().unwrap();
+        map.insert(instance_id.clone(), progress.clone());
+    }
     Ok(())
 }
 
@@ -293,6 +329,7 @@ async fn do_download(
         let percent = if total > 0 { (current as f32 / total as f32) * 100.0 } else { 0.0 };
         let progress = DownloadProgress {
             instance_id: instance_id.to_string(),
+            instance_name: instance_name.to_string(),
             stage: stage.to_string(),
             current, total, percent, speed_kb: 0.0, done, error: None,
         };
@@ -306,9 +343,11 @@ async fn do_download(
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 1: Download vanilla Minecraft
     // ═══════════════════════════════════════════════════════════════════════════
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     emit_progress("Fetching version metadata...", 0, 1, false);
     let version_meta: VersionMeta = client.get(version_url).send().await?.json().await?;
 
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     // Download client jar
     emit_progress("Downloading Minecraft client...", 0, 1, false);
     let version_dir = get_versions_dir().join(version_id);
@@ -324,6 +363,7 @@ async fn do_download(
         tokio::fs::write(&version_json_path, serde_json::to_string_pretty(&raw)?).await?;
     }
 
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     // Download vanilla libraries
     let valid_libs: Vec<&Artifact> = version_meta.libraries.iter()
         .filter(|lib| lib.rules.as_deref().map_or(true, |rules| is_library_allowed_on_windows(rules)))
@@ -332,6 +372,7 @@ async fn do_download(
 
     let total_libs = valid_libs.len() as u64;
     for (i, artifact) in valid_libs.iter().enumerate() {
+        if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
         emit_progress(
             &format!("Downloading libraries... ({}/{})", i + 1, total_libs),
             i as u64 + 1, total_libs, false,
@@ -340,6 +381,7 @@ async fn do_download(
         download_file(&client, &artifact.url, &lib_path, Some(&artifact.sha1)).await?;
     }
 
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     // Download assets
     emit_progress("Fetching asset index...", 0, 1, false);
     let asset_index_path = get_assets_dir().join("indexes").join(format!("{}.json", version_meta.asset_index.id));
@@ -351,6 +393,7 @@ async fn do_download(
     let total_assets = objects.len() as u64;
 
     for (i, (_, obj)) in objects.iter().enumerate() {
+        if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
         if i % 50 == 0 {
             emit_progress(
                 &format!("Downloading assets... ({}/{})", i, total_assets),
@@ -367,6 +410,7 @@ async fn do_download(
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 2: Download loader (Fabric / Quilt / NeoForge / Forge)
     // ═══════════════════════════════════════════════════════════════════════════
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     let loader_name = loader.unwrap_or("vanilla");
     let is_modded = loader_name != "vanilla" && loader_version.is_some();
 
@@ -409,6 +453,7 @@ async fn do_download(
                 // Download loader libraries
                 let total_loader_libs = loader_json.libraries.len();
                 for (i, lib) in loader_json.libraries.iter().enumerate() {
+                    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
                     emit_progress(
                         &format!("Downloading {} libraries... ({}/{})", loader_name, i + 1, total_loader_libs),
                         i as u64 + 1, total_loader_libs as u64, false,
@@ -451,6 +496,7 @@ async fn do_download(
     // ═══════════════════════════════════════════════════════════════════════════
     // STEP 3: Setup instance directory
     // ═══════════════════════════════════════════════════════════════════════════
+    if is_cancelled(instance_id) { cleanup_cancel(instance_id); return Ok(()); }
     let instance_dir = get_instance_dir(instance_name, custom_path);
     tokio::fs::create_dir_all(&instance_dir).await?;
     // Create mods directory for modded instances
@@ -458,6 +504,7 @@ async fn do_download(
         tokio::fs::create_dir_all(instance_dir.join("mods")).await?;
     }
 
+    cleanup_cancel(instance_id);
     emit_progress("Installation complete!", 1, 1, true);
     Ok(())
 }

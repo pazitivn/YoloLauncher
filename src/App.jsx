@@ -3,10 +3,13 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { ToastProvider } from './components/ToastProvider';
 import { DialogProvider } from './components/DialogProvider';
+import { DownloadProvider } from './components/DownloadNotifications';
+import DownloadNotificationsDrawer from './components/DownloadNotificationsDrawer';
 import Titlebar from './components/Titlebar';
 import Sidebar from './components/Sidebar';
 import HomePage from './pages/HomePage';
 import InstancesPage from './pages/InstancesPage';
+import VersionsPage from './pages/VersionsPage';
 import AccountsPage from './pages/AccountsPage';
 import SettingsPage from './pages/SettingsPage';
 import ServersPage from './pages/ServersPage';
@@ -25,21 +28,54 @@ function darkenHex(hex, amount = 40) {
   return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${b.toString(16).padStart(2,'0')}`;
 }
 
-export function applyAccent(color) {
-  const dim = darkenHex(color, 40);
-  const r = parseInt(color.slice(1,3), 16);
-  const g = parseInt(color.slice(3,5), 16);
-  const b = parseInt(color.slice(5,7), 16);
-  document.documentElement.style.setProperty('--accent', color);
-  document.documentElement.style.setProperty('--accent-bright', color);
-  document.documentElement.style.setProperty('--accent-dim', dim);
-  document.documentElement.style.setProperty('--accent-glow', `rgba(${r},${g},${b},0.35)`);
-  document.documentElement.style.setProperty('--border-accent', `rgba(${r},${g},${b},0.4)`);
-  document.documentElement.style.setProperty('--shadow-accent', `0 0 30px rgba(${r},${g},${b},0.2)`);
+export function applyAccent(primary, secondary = null) {
+  const s = secondary || primary;
+  // Primary accent
+  const dimP = darkenHex(primary, 40);
+  const r1 = parseInt(primary.slice(1,3), 16);
+  const g1 = parseInt(primary.slice(3,5), 16);
+  const b1 = parseInt(primary.slice(5,7), 16);
+  document.documentElement.style.setProperty('--accent', primary);
+  document.documentElement.style.setProperty('--accent-bright', primary);
+  document.documentElement.style.setProperty('--accent-dim', dimP);
+  document.documentElement.style.setProperty('--accent-glow', `rgba(${r1},${g1},${b1},0.35)`);
+  document.documentElement.style.setProperty('--border-accent', `rgba(${r1},${g1},${b1},0.4)`);
+  document.documentElement.style.setProperty('--shadow-accent', `0 0 30px rgba(${r1},${g1},${b1},0.2)`);
+  // Secondary accent
+  const dimS = darkenHex(s, 40);
+  const r2 = parseInt(s.slice(1,3), 16);
+  const g2 = parseInt(s.slice(3,5), 16);
+  const b2 = parseInt(s.slice(5,7), 16);
+  document.documentElement.style.setProperty('--accent-secondary', s);
+  document.documentElement.style.setProperty('--accent-secondary-bright', s);
+  document.documentElement.style.setProperty('--accent-secondary-dim', dimS);
+  document.documentElement.style.setProperty('--accent-secondary-glow', `rgba(${r2},${g2},${b2},0.35)`);
+  document.documentElement.style.setProperty('--border-accent-secondary', `rgba(${r2},${g2},${b2},0.4)`);
+  document.documentElement.style.setProperty('--shadow-accent-secondary', `0 0 30px rgba(${r2},${g2},${b2},0.2)`);
 }
 
 export function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
+  if (theme === 'system') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}
+
+// Track system color scheme so 'system' theme stays reactive
+let systemThemeListener = null;
+export function listenSystemTheme(themeSetting, applyFn) {
+  if (systemThemeListener) {
+    systemThemeListener();
+    systemThemeListener = null;
+  }
+  if (themeSetting === 'system') {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = () => applyFn('system');
+    mq.addEventListener('change', handler);
+    systemThemeListener = () => mq.removeEventListener('change', handler);
+  }
 }
 
 function AppInner() {
@@ -48,6 +84,7 @@ function AppInner() {
   const [activeAccount, setActiveAccount] = useState(null);
   const [activeInstance, setActiveInstance] = useState(null);
   const [viewingInstance, setViewingInstance] = useState(null);
+  const [viewingVersions, setViewingVersions] = useState(false);
   const [instances, setInstances]         = useState([]);
   const [runningIds, setRunningIds]       = useState(new Set());
   const [showMigration, setShowMigration] = useState(true);
@@ -56,7 +93,7 @@ function AppInner() {
   const historyPosRef = useRef(0);
 
   const navigateTo = useCallback((newPage, clearViewing = true) => {
-    if (clearViewing) setViewingInstance(null);
+    if (clearViewing) { setViewingInstance(null); setViewingVersions(false); }
     setPage(newPage);
     historyRef.current = historyRef.current.slice(0, historyPosRef.current + 1);
     historyRef.current.push(newPage);
@@ -94,9 +131,18 @@ function AppInner() {
     try {
       const insts = await invoke('get_instances');
       setInstances(insts);
-      if (insts.length > 0 && !activeInstance) setActiveInstance(insts[0]);
+      if (insts.length > 0) {
+        const savedId = await invoke('get_last_selected_instance');
+        if (savedId) {
+          const found = insts.find(i => i.id === savedId);
+          if (found) setActiveInstance(found);
+          else setActiveInstance(insts[0]);
+        } else {
+          setActiveInstance(insts[0]);
+        }
+      }
     } catch {}
-  }, [activeInstance]);
+  }, []);
 
   useEffect(() => {
     initStats();
@@ -107,8 +153,16 @@ function AppInner() {
     document.addEventListener('contextmenu', handleContextMenu);
 
     loadAllSettings().then(({ accent, theme }) => {
-      applyAccent(accent);
+      // Parse stored accent: single hex or 'pair:primary:secondary'
+      let primary = accent, secondary = accent;
+      if (typeof accent === 'string' && accent.startsWith('pair:')) {
+        const parts = accent.split(':');
+        primary = parts[1];
+        secondary = parts[2];
+      }
+      applyAccent(primary, secondary);
       applyTheme(theme);
+      listenSystemTheme(theme, applyTheme);
     });
 
     const handleMouseButton = async (e) => {
@@ -134,14 +188,27 @@ function AppInner() {
     const handleRefresh = () => refreshInstances();
     window.addEventListener('yolo-refresh-instances', handleRefresh);
 
+    // Re-read active instance when the window gains focus
+    // (handles multi-window scenarios)
+    const handleFocus = () => refreshInstances();
+    window.addEventListener('focus', handleFocus);
+
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       window.removeEventListener('mousedown', handleMouseButton);
       window.removeEventListener('yolo-refresh-instances', handleRefresh);
+      window.removeEventListener('focus', handleFocus);
       [unlistenStart, unlistenStop, unlistenOpen, unlistenCrash]
         .forEach(p => p.then(f => f()));
     };
   }, [refreshAccounts, navigateBack, navigateForward]);
+
+  // Persist active instance id whenever it changes
+  useEffect(() => {
+    if (activeInstance) {
+      invoke('set_last_selected_instance', { instanceId: activeInstance.id });
+    }
+  }, [activeInstance]);
 
   function handleLaunchFromHome(inst) {
     if (inst) setActiveInstance(inst);
@@ -171,15 +238,19 @@ function AppInner() {
               setPage={navigateTo}
             />
           )}
-          {page === 'instances' && !viewingInstance && (
+          {page === 'instances' && !viewingInstance && !viewingVersions && (
             <InstancesPage
               activeAccount={activeAccount}
               activeInstance={activeInstance}
               setActiveInstance={setActiveInstance}
               onEditInstance={setViewingInstance}
+              onManageVersions={() => setViewingVersions(true)}
               runningIds={runningIds}
               onOpenConsole={openConsoleWindow}
             />
+          )}
+          {page === 'instances' && viewingVersions && (
+            <VersionsPage onBack={() => setViewingVersions(false)} />
           )}
           {viewingInstance && (
             <InstanceViewPage
@@ -210,6 +281,8 @@ function AppInner() {
           }
         }} />
       )}
+
+      <DownloadNotificationsDrawer />
     </div>
   );
 }
@@ -219,7 +292,9 @@ export default function App() {
     <LanguageProvider>
       <ToastProvider>
         <DialogProvider>
-          <AppInner />
+          <DownloadProvider>
+            <AppInner />
+          </DownloadProvider>
         </DialogProvider>
       </ToastProvider>
     </LanguageProvider>

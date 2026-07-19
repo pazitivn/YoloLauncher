@@ -21,7 +21,7 @@ export function ToastProvider({ children }) {
             <span className="toast-icon" style={{ display: 'flex', alignItems: 'center' }}>
               {t.type === 'success' ? <CheckCircle2 size={18} color="var(--green)" /> : 
                t.type === 'error' ? <XCircle size={18} color="var(--red)" /> : 
-               <Info size={18} color="var(--accent-bright)" />}
+               <Info size={18} color="var(--accent-secondary-bright)" />}
             </span>
             <span className="toast-msg">{t.msg}</span>
           </div>

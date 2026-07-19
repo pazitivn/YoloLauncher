@@ -10,6 +10,7 @@ pub mod content;
 pub mod migration;
 pub mod servers;
 pub mod skins;
+pub mod tray;
 
 use tauri::Manager;
 
@@ -32,6 +33,22 @@ pub fn run() {
                 }
             });
 
+            // Setup system tray
+            if let Err(e) = tray::setup_tray(app) {
+                eprintln!("[tray] Failed to setup tray: {}", e);
+            }
+
+            // Intercept window close: if games are running, hide to tray instead
+            let window_clone = window.clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    if launch::running_instance_count() > 0 {
+                        let _ = window_clone.hide();
+                        api.prevent_close();
+                    }
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -49,18 +66,33 @@ pub fn run() {
             instances::create_instance,
             instances::edit_instance,
             instances::delete_instance,
+            instances::set_last_selected_instance,
+            instances::get_last_selected_instance,
             instances::get_minecraft_versions,
             instances::get_loader_versions,
             instances::get_default_instances_dir,
             instances::get_downloaded_versions,
+            instances::get_versions_detail,
+            instances::delete_version_folder,
             instances::get_instance_screenshot,
+            
+            // --- ДОБАВЛЕННЫЕ КОМАНДЫ ДЛЯ МИГРАЦИИ СБОРОК ---
+            instances::scan_malformed_versions,
+            instances::migrate_modpack,
+            instances::delete_empty_folder,
+            instances::fix_instance_paths,
+            // -----------------------------------------------
+
             // Download commands
             download::download_instance,
+            download::cancel_download,
             download::get_download_progress,
             // Launch commands
             launch::launch_instance,
             launch::stop_instance,
             launch::get_running_instances,
+            launch::get_buffered_logs,
+            launch::clear_buffered_logs,
             // Java commands
             java::get_java_installations,
             java::check_java,
@@ -85,6 +117,9 @@ pub fn run() {
             // Server commands
             servers::load_servers_with_ping,
             servers::refresh_single_server,
+            servers::get_servers_summary,
+            // Tray commands
+            tray::set_tray_language,
         ])
         .run(tauri::generate_context!())
         .expect("error while running YoloLauncher")

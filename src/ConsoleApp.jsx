@@ -9,6 +9,7 @@
  *  • Copy + Clear per tab
  *  • Crash badge on tab
  *  • Custom title bar (decorations: false)
+ *  • Dynamic theme (light/dark) support
  */
 
 import React, {
@@ -40,19 +41,11 @@ function nowLabel() {
 
 const MAX_PER_TAB = 10_000;
 
-// ─── CSS variables — loaded from store at runtime ──────────────────────────
-let ACCENT   = '#7c6af7';
-let ACCENT_B = '#9d8fff';
-const BG_BASE  = '#080a10';
-const BG_BAR   = '#0d0f16';
-const BG_TAB   = '#111520';
-const BORDER   = 'rgba(255,255,255,0.07)';
-
-// ─── Level config ────────────────────────────────────────────────────────────
+// ─── Level config — uses CSS custom properties from the active theme ────────
 const LEVELS = {
-  error: { bg: 'rgba(248,113,113,.13)', color: '#fca5a5', border: 'rgba(248,113,113,.3)', icon: <AlertCircle size={11} /> },
-  warn:  { bg: 'rgba(251,191,36,.10)',  color: '#fde68a', border: 'rgba(251,191,36,.25)', icon: <AlertTriangle size={11} /> },
-  info:  { bg: 'transparent',           color: '#c9cfe8', border: 'transparent',          icon: <Info size={11} /> },
+  error: { bg: 'var(--red-dim)', color: 'var(--red)', border: 'color-mix(in srgb, var(--red) 30%, transparent)', icon: <AlertCircle size={11} /> },
+  warn:  { bg: 'var(--yellow-dim)', color: 'var(--yellow)', border: 'color-mix(in srgb, var(--yellow) 25%, transparent)', icon: <AlertTriangle size={11} /> },
+  info:  { bg: 'transparent',        color: 'var(--text-primary)', border: 'transparent',                                icon: <Info size={11} /> },
 };
 
 // ─── Single log line ─────────────────────────────────────────────────────────
@@ -67,13 +60,13 @@ function LogLine({ entry }) {
       fontFamily: "'JetBrains Mono','Fira Code','Cascadia Code',monospace",
       fontSize: 11.5, lineHeight: '18px',
     }}>
-      <span style={{ color: '#3a4060', fontSize: 10, flexShrink: 0, marginTop: 2, minWidth: 62 }}>
+      <span style={{ color: 'var(--text-muted)', fontSize: 10, flexShrink: 0, marginTop: 2, minWidth: 62 }}>
         {fmtTime(entry.timestamp)}
       </span>
       <span style={{
         display: 'inline-flex', alignItems: 'center', gap: 3,
         fontSize: 9, fontWeight: 700, padding: '1px 5px',
-        borderRadius: 4, background: cfg.bg || 'rgba(255,255,255,.06)',
+        borderRadius: 4, background: cfg.bg || 'var(--bg-glass)',
         color: cfg.color, textTransform: 'uppercase',
         letterSpacing: 0.5, flexShrink: 0, minWidth: 42,
         justifyContent: 'center', border: `1px solid ${cfg.border}`,
@@ -97,7 +90,7 @@ function TabStrip({ tabs, activeId, onSelect, onClose }) {
   return (
     <div style={{
       display: 'flex', flexShrink: 0, overflowX: 'auto', overflowY: 'hidden',
-      background: BG_BAR, borderBottom: `1px solid ${BORDER}`,
+      background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
       scrollbarWidth: 'none',
     }}>
       {tabs.map(tab => {
@@ -111,10 +104,10 @@ function TabStrip({ tabs, activeId, onSelect, onClose }) {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '0 10px 0 14px', height: 36,
               cursor: 'pointer', userSelect: 'none',
-              background: isActive ? BG_TAB : 'transparent',
-              borderRight: `1px solid ${BORDER}`,
+              background: isActive ? 'var(--bg-elevated)' : 'transparent',
+              borderRight: '1px solid var(--border)',
               borderBottom: isActive
-                ? `2px solid ${ACCENT}`
+                ? '2px solid var(--accent)'
                 : '2px solid transparent',
               minWidth: 110, maxWidth: 180, flexShrink: 0,
               transition: 'background .15s',
@@ -122,11 +115,11 @@ function TabStrip({ tabs, activeId, onSelect, onClose }) {
             }}
           >
             <Terminal size={11} style={{
-              color: isActive ? ACCENT_B : '#3a4060', flexShrink: 0,
+              color: isActive ? 'var(--accent-bright)' : 'var(--text-muted)', flexShrink: 0,
             }} />
             <span style={{
               fontSize: 12, fontWeight: isActive ? 600 : 400,
-              color: isActive ? '#e8eaff' : '#5a6080',
+              color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
               overflow: 'hidden', textOverflow: 'ellipsis',
               whiteSpace: 'nowrap', flex: 1,
               fontFamily: "'JetBrains Mono',monospace",
@@ -136,24 +129,24 @@ function TabStrip({ tabs, activeId, onSelect, onClose }) {
             {tab.running && (
               <span style={{
                 width: 6, height: 6, borderRadius: '50%',
-                background: '#4ade80', flexShrink: 0,
-                boxShadow: '0 0 6px rgba(74,222,128,.6)',
+                background: 'var(--green)', flexShrink: 0,
+                boxShadow: '0 0 6px var(--green-dim)',
                 animation: 'pulse 2s infinite',
               }} />
             )}
             {tab.crashed && !tab.running && (
-              <AlertCircle size={11} style={{ color: '#f87171', flexShrink: 0 }} />
+              <AlertCircle size={11} style={{ color: 'var(--red)', flexShrink: 0 }} />
             )}
             <button
               onClick={e => { e.stopPropagation(); onClose(tab.id); }}
               style={{
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: '#3a4060', padding: 2, borderRadius: 3, flexShrink: 0,
+                color: 'var(--text-muted)', padding: 2, borderRadius: 3, flexShrink: 0,
                 display: 'flex', alignItems: 'center',
                 transition: 'color .1s',
               }}
-              onMouseOver={e => e.currentTarget.style.color = '#f87171'}
-              onMouseOut={e => e.currentTarget.style.color = '#3a4060'}
+              onMouseOver={e => e.currentTarget.style.color = 'var(--red)'}
+              onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}
             >
               <X size={11} />
             </button>
@@ -181,14 +174,14 @@ function TitleBar({ title, errorCount, warnCount }) {
       style={{
         height: 36, display: 'flex', alignItems: 'center',
         justifyContent: 'space-between', padding: '0 12px 0 16px',
-        background: '#060810', borderBottom: `1px solid ${BORDER}`,
+        background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)',
         flexShrink: 0, WebkitAppRegion: 'drag',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Terminal size={13} style={{ color: ACCENT_B }} />
+        <Terminal size={13} style={{ color: 'var(--accent-bright)' }} />
         <span style={{
-          fontSize: 12, fontWeight: 700, color: '#8b92b3',
+          fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)',
           letterSpacing: 0.5,
         }}>
           {title}
@@ -196,8 +189,8 @@ function TitleBar({ title, errorCount, warnCount }) {
         {errorCount > 0 && (
           <span style={{
             fontSize: 10, fontWeight: 700, padding: '1px 6px',
-            borderRadius: 10, background: 'rgba(248,113,113,.15)',
-            color: '#f87171',
+            borderRadius: 10, background: 'var(--red-dim)',
+            color: 'var(--red)',
           }}>
             {errorCount} error{errorCount !== 1 ? 's' : ''}
           </span>
@@ -205,8 +198,8 @@ function TitleBar({ title, errorCount, warnCount }) {
         {warnCount > 0 && (
           <span style={{
             fontSize: 10, fontWeight: 700, padding: '1px 6px',
-            borderRadius: 10, background: 'rgba(251,191,36,.15)',
-            color: '#fbbf24',
+            borderRadius: 10, background: 'var(--yellow-dim)',
+            color: 'var(--yellow)',
           }}>
             {warnCount} warn{warnCount !== 1 ? 's' : ''}
           </span>
@@ -241,11 +234,11 @@ function WinBtn({ children, onClick, title, danger }) {
         cursor: 'pointer', display: 'flex', alignItems: 'center',
         justifyContent: 'center', transition: 'background .1s',
         background: hov
-          ? (danger ? 'rgba(248,113,113,.22)' : 'rgba(255,255,255,.08)')
+          ? (danger ? 'var(--red-dim)' : 'var(--bg-glass-hover)')
           : 'transparent',
         color: hov
-          ? (danger ? '#f87171' : '#e0e2f0')
-          : '#4a5175',
+          ? (danger ? 'var(--red)' : 'var(--text-primary)')
+          : 'var(--text-muted)',
       }}
     >
       {children}
@@ -259,18 +252,48 @@ function EmptyState({ noTabs }) {
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      gap: 14, color: '#2d3250',
+      gap: 14, color: 'var(--text-muted)',
     }}>
       {noTabs ? <WifiOff size={40} /> : <Terminal size={40} />}
       <div style={{ fontSize: 14, fontWeight: 600 }}>
         {noTabs ? 'No game sessions yet' : 'Waiting for output…'}
       </div>
-      <div style={{ fontSize: 11, color: '#1e2330', maxWidth: 280, textAlign: 'center' }}>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', maxWidth: 280, textAlign: 'center' }}>
         {noTabs
           ? 'Launch a Minecraft instance from the launcher to see logs here.'
           : 'Game is starting up…'}
       </div>
     </div>
+  );
+}
+
+// ─── Small toolbar button ─────────────────────────────────────────────────────
+function ToolBtn({ children, onClick, title, danger }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <button
+      title={title}
+      onClick={onClick}
+      onMouseOver={() => setHov(true)}
+      onMouseOut={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
+        fontSize: 11, fontFamily: 'inherit', fontWeight: 500,
+        border: `1px solid ${hov
+          ? (danger ? 'color-mix(in srgb, var(--red) 40%, transparent)' : 'var(--border-accent-secondary)')
+          : 'var(--border)'}`,
+        background: hov
+          ? (danger ? 'var(--red-dim)' : 'var(--bg-glass-hover)')
+          : 'transparent',
+        color: hov
+          ? (danger ? 'var(--red)' : 'var(--text-primary)')
+          : 'var(--text-secondary)',
+        transition: 'all .12s',
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -281,23 +304,56 @@ export default function ConsoleApp() {
   const [activeId, setActiveId]       = useState(null);
   const [autoScroll, setAutoScroll]   = useState(true);
   const [copied, setCopied]           = useState(false);
-  const [accentReady, setAccentReady] = useState(0); // bump to re-render on accent load
+  const [refreshKey, setRefreshKey]   = useState(0); // bump to re-render on theme/accent change
   const scrollRef                     = useRef(null);
 
-  // ── Load accent color from persistent store ─────────────────────────────
+  // ── Load accent colour & theme from persistent store ────────────────────
   useEffect(() => {
-    getSetting('accent', '#7c6af7').then(color => {
-      ACCENT   = color;
-      // Derive a lighter variant
-      const r = parseInt(color.slice(1,3), 16);
-      const g = parseInt(color.slice(3,5), 16);
-      const b = parseInt(color.slice(5,7), 16);
-      ACCENT_B = `rgb(${Math.min(255,r+35)},${Math.min(255,g+35)},${Math.min(255,b+35)})`;
-      document.documentElement.style.setProperty('--accent', color);
-      document.documentElement.style.setProperty('--accent-bright', ACCENT_B);
-      // Force re-render to pick up new colours
-      setAccentReady(v => v + 1);
+    getSetting('accent', '#7c6af7').then(stored => {
+      // Parse stored accent: single hex or 'pair:primary:secondary'
+      let primary = stored, secondary = stored;
+      if (typeof stored === 'string' && stored.startsWith('pair:')) {
+        const parts = stored.split(':');
+        primary = parts[1];
+        secondary = parts[2];
+      }
+
+      const setVars = (prefix, hex) => {
+        const r = parseInt(hex.slice(1,3), 16);
+        const g = parseInt(hex.slice(3,5), 16);
+        const b = parseInt(hex.slice(5,7), 16);
+        document.documentElement.style.setProperty(`${prefix}`, hex);
+        document.documentElement.style.setProperty(`${prefix}-bright`, `rgb(${Math.min(255,r+35)},${Math.min(255,g+35)},${Math.min(255,b+35)})`);
+        document.documentElement.style.setProperty(`${prefix}-glow`, `rgba(${r},${g},${b},0.35)`);
+        document.documentElement.style.setProperty(`${prefix}-dim`, `rgb(${Math.max(0,r-40)},${Math.max(0,g-40)},${Math.max(0,b-40)})`);
+        document.documentElement.style.setProperty(`border-${prefix}`, `rgba(${r},${g},${b},0.4)`);
+        document.documentElement.style.setProperty(`shadow-${prefix}`, `0 0 30px rgba(${r},${g},${b},0.2)`);
+      };
+
+      setVars('--accent', primary);
+      setVars('--accent-secondary', secondary);
+
+      // Also load the theme and apply it
+      getSetting('theme', 'dark').then(th => {
+        document.documentElement.setAttribute('data-theme', th);
+        setRefreshKey(v => v + 1);
+      });
     });
+  }, []);
+
+  // ── Listen for window focus to pick up theme changes from main window ───
+  useEffect(() => {
+    const handleFocus = () => {
+      getSetting('theme', 'dark').then(th => {
+        const current = document.documentElement.getAttribute('data-theme');
+        if (current !== th) {
+          document.documentElement.setAttribute('data-theme', th);
+          setRefreshKey(v => v + 1);
+        }
+      });
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   // ── Tauri event listeners ─────────────────────────────────────────────────
@@ -379,7 +435,7 @@ export default function ConsoleApp() {
     if (!autoScroll) return;
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [sessions, autoScroll, activeId]);
+  }, [sessions, autoScroll, activeId, refreshKey]);
 
   function syncScroll() {
     setAutoScroll(true);
@@ -428,11 +484,11 @@ export default function ConsoleApp() {
     : 'YoloLauncher Console';
 
   return (
-    <div style={{
+    <div key={refreshKey} style={{
       width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
-      background: BG_BASE, color: '#c9cfe8', overflow: 'hidden',
+      background: 'var(--bg-base)', color: 'var(--text-primary)', overflow: 'hidden',
       fontFamily: "'Inter',system-ui,sans-serif",
-      border: `1px solid ${BORDER}`, borderRadius: 10,
+      border: '1px solid var(--border)', borderRadius: 10,
     }}>
       {/* Custom title bar */}
       <TitleBar title={title} errorCount={errorCount} warnCount={warnCount} />
@@ -451,27 +507,27 @@ export default function ConsoleApp() {
       {activeSession && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '8px 16px', borderBottom: `1px solid ${BORDER}`,
-          background: BG_BAR, flexShrink: 0,
+          padding: '8px 16px', borderBottom: '1px solid var(--border)',
+          background: 'var(--bg-surface)', flexShrink: 0,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{
               width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-              background: activeSession.running ? '#4ade80' : activeSession.crashed ? '#f87171' : '#4a5175',
-              boxShadow: activeSession.running ? '0 0 8px rgba(74,222,128,.5)' : 'none',
+              background: activeSession.running ? 'var(--green)' : activeSession.crashed ? 'var(--red)' : 'var(--text-muted)',
+              boxShadow: activeSession.running ? '0 0 8px var(--green-dim)' : 'none',
               animation: activeSession.running ? 'pulse 2s infinite' : 'none',
             }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#e0e2f0' }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
               {activeSession.instanceName}
             </span>
-            <span style={{ fontSize: 11, color: '#3a4060' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
               started {activeSession.label}
             </span>
             {activeSession.crashed && (
               <span style={{
                 fontSize: 10, fontWeight: 700, padding: '1px 8px',
-                borderRadius: 10, background: 'rgba(248,113,113,.15)',
-                color: '#f87171', border: '1px solid rgba(248,113,113,.3)',
+                borderRadius: 10, background: 'var(--red-dim)',
+                color: 'var(--red)', border: '1px solid color-mix(in srgb, var(--red) 30%, transparent)',
               }}>
                 CRASHED
               </span>
@@ -498,8 +554,8 @@ export default function ConsoleApp() {
         onScroll={handleScroll}
         style={{
           flex: 1, overflowY: 'auto', overflowX: 'hidden',
-          background: BG_BASE, position: 'relative',
-          scrollbarWidth: 'thin', scrollbarColor: '#1e2330 transparent',
+          background: 'var(--bg-base)', position: 'relative',
+          scrollbarWidth: 'thin', scrollbarColor: 'var(--bg-overlay) transparent',
         }}
       >
         {tabs.length === 0 ? (
@@ -530,20 +586,20 @@ export default function ConsoleApp() {
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
               padding: '10px 22px', borderRadius: 30,
-              background: `linear-gradient(135deg, ${ACCENT}, #9d8fff)`,
+              background: 'linear-gradient(135deg, var(--accent), var(--accent-bright))',
               color: 'white', border: 'none', cursor: 'pointer',
               fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
-              boxShadow: `0 4px 20px rgba(124,106,247,.55)`,
+              boxShadow: '0 4px 20px color-mix(in srgb, var(--accent) 55%, transparent)',
               transition: 'transform .1s, box-shadow .1s',
               letterSpacing: 0.3,
             }}
             onMouseOver={e => {
               e.currentTarget.style.transform = 'scale(1.06)';
-              e.currentTarget.style.boxShadow = `0 6px 28px rgba(124,106,247,.7)`;
+              e.currentTarget.style.boxShadow = '0 6px 28px color-mix(in srgb, var(--accent) 70%, transparent)';
             }}
             onMouseOut={e => {
               e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = `0 4px 20px rgba(124,106,247,.55)`;
+              e.currentTarget.style.boxShadow = '0 4px 20px color-mix(in srgb, var(--accent) 55%, transparent)';
             }}
           >
             <ChevronDown size={15} />
@@ -555,26 +611,26 @@ export default function ConsoleApp() {
       {/* Status bar */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '3px 14px', background: '#060810',
-        borderTop: `1px solid ${BORDER}`, flexShrink: 0,
-        fontSize: 10, color: '#3a4060',
+        padding: '3px 14px', background: 'var(--bg-surface)',
+        borderTop: '1px solid var(--border)', flexShrink: 0,
+        fontSize: 10, color: 'var(--text-muted)',
       }}>
         <div style={{ display: 'flex', gap: 14 }}>
           <span>{activeLogs.length} lines</span>
-          {errorCount > 0 && <span style={{ color: '#f87171' }}>{errorCount} errors</span>}
-          {warnCount > 0  && <span style={{ color: '#fbbf24' }}>{warnCount} warnings</span>}
+          {errorCount > 0 && <span style={{ color: 'var(--red)' }}>{errorCount} errors</span>}
+          {warnCount > 0  && <span style={{ color: 'var(--yellow)' }}>{warnCount} warnings</span>}
         </div>
-        <span style={{ color: autoScroll ? '#2d3250' : ACCENT_B }}>
+        <span style={{ color: autoScroll ? 'var(--text-muted)' : 'var(--accent-secondary-bright)' }}>
           {autoScroll ? 'Auto-scroll on ↓' : '↑ Scrolled up — click Sync to follow'}
         </span>
       </div>
 
       <style>{`
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body, #root { width: 100%; height: 100%; background: ${BG_BASE}; overflow: hidden; }
+        html, body, #root { width: 100%; height: 100%; background: var(--bg-base); overflow: hidden; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #1e2330; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb { background: var(--bg-overlay); border-radius: 2px; }
         @keyframes pulse {
           0%,100% { opacity: 1; }
           50% { opacity: .45; }
@@ -585,35 +641,5 @@ export default function ConsoleApp() {
         }
       `}</style>
     </div>
-  );
-}
-
-// ─── Small toolbar button ─────────────────────────────────────────────────────
-function ToolBtn({ children, onClick, title, danger }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <button
-      title={title}
-      onClick={onClick}
-      onMouseOver={() => setHov(true)}
-      onMouseOut={() => setHov(false)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5,
-        padding: '4px 10px', borderRadius: 6, cursor: 'pointer',
-        fontSize: 11, fontFamily: 'inherit', fontWeight: 500,
-        border: `1px solid ${hov
-          ? (danger ? 'rgba(248,113,113,.4)' : 'rgba(255,255,255,.15)')
-          : 'rgba(255,255,255,.07)'}`,
-        background: hov
-          ? (danger ? 'rgba(248,113,113,.12)' : 'rgba(255,255,255,.06)')
-          : 'transparent',
-        color: hov
-          ? (danger ? '#f87171' : '#c9cfe8')
-          : '#5a6080',
-        transition: 'all .12s',
-      }}
-    >
-      {children}
-    </button>
   );
 }

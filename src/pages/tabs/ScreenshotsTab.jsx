@@ -69,7 +69,7 @@ export default function ScreenshotsTab({ instance }) {
               position: 'relative', display: 'flex', flexDirection: 'column',
               height: 200
             }}
-              onMouseOver={e => { e.currentTarget.style.borderColor='var(--accent)'; e.currentTarget.style.transform='translateY(-2px)'; }}
+              onMouseOver={e => { e.currentTarget.style.borderColor='var(--accent-secondary)'; e.currentTarget.style.transform='translateY(-2px)'; }}
               onMouseOut={e => { e.currentTarget.style.borderColor='var(--border)'; e.currentTarget.style.transform='translateY(0)'; }}>
               {/* Image */}
               <div style={{ background:'var(--bg-overlay)', overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', flex: 1 }}>

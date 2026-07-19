@@ -47,7 +47,15 @@ export async function loadAllSettings() {
   return {
     lang: await getSetting('lang', 'en'),
     accent: await getSetting('accent', '#7c6af7'),
-    theme: await getSetting('theme', 'dark'),
+    theme: await getSetting('theme', 'system'),
     mouseNav: await getSetting('mouse_nav', true),
+    closeAction: await getSetting('close_action', 'tray'),
+    gpuAccel: await getSetting('gpu_accel', false),
+    autoUpdate: await getSetting('auto_update', true),
+    bgUpdate: await getSetting('bg_update', true),
+    sysNotify: await getSetting('sys_notify', true),
+    uiScale: await getSetting('ui_scale', 100),
+    speedMode: await getSetting('speed_mode', 'normal'),
+    discordRpc: await getSetting('discord_rpc', false),
   };
 }

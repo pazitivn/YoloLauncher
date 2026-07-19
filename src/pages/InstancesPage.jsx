@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import { open } from '@tauri-apps/plugin-dialog';
 import { useToast } from '../components/ToastProvider';
 import { useTranslation } from '../i18n';
+import { useDownloads } from '../components/DownloadNotifications';
 import { 
   Plus, Gamepad2, Download, Trash2, HardDrive, 
   PackageOpen, CheckCircle2, Loader2, Settings2, FolderOpen,
-  ChevronDown, ChevronUp, Minus, Settings, Check,
-  Zap, Leaf, Flame, Gem, Globe, Mountain, Sword, Crosshair, Skull, Moon
+  ChevronDown, ChevronUp, Settings, Check,
+  Zap, Leaf, Flame, Gem, Globe, Mountain, Sword, Crosshair, Skull, Moon,
+  Layers
 } from 'lucide-react';
 
 const LOADER_COLORS = {
@@ -295,7 +296,7 @@ function CreateInstanceModal({ initialData, onClose, onCreated }) {
               <div style={{ padding: '0 16px 16px 16px', borderTop: '1px solid var(--border)' }}>
                 <div className="form-group" style={{ marginTop: 16 }}>
                   <label className="form-label">
-                    {t('memory')}: <strong style={{ color: 'var(--accent-bright)' }}>{memory} MB</strong> ({(memory / 1024).toFixed(1)} GB)
+                    {t('memory')}: <strong style={{ color: 'var(--accent-secondary-bright)' }}>{memory} MB</strong> ({(memory / 1024).toFixed(1)} GB)
                   </label>
                   <input
                     type="range" className="range-slider"
@@ -409,112 +410,31 @@ function CreateInstanceModal({ initialData, onClose, onCreated }) {
   );
 }
 
-function DownloadModal({ instance, progress, started, onClose, startDownload }) {
-  const { t } = useTranslation();
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ textAlign: 'center', position: 'relative' }}>
-        
-        <button 
-          onClick={onClose}
-          style={{ position: 'absolute', top: 16, right: 16, background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-          title="Minimize to background"
-        >
-          <Minus size={20} />
-        </button>
-
-        <div className="modal-title">Install {instance.name}</div>
-        <div className="modal-subtitle">Download Minecraft {instance.minecraft_version}</div>
-
-        {!started && (
-          <>
-            <div style={{ padding: '20px 0', display: 'flex', justifyContent: 'center', color: 'var(--accent-bright)' }}>
-              <PackageOpen size={64} strokeWidth={1} />
-            </div>
-            <div style={{ color: 'var(--text-secondary)', marginBottom: 24, fontSize: 13 }}>
-              This will download the game files, libraries, and assets (~500 MB)
-            </div>
-            <div className="modal-footer" style={{ justifyContent: 'center' }}>
-              <button className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
-              <button id="start-download-btn" className="btn btn-primary" onClick={startDownload}>
-                <Download size={16} /> {t('startDownload')}
-              </button>
-            </div>
-          </>
-        )}
-
-        {started && progress && (
-          <div className="download-stage">
-            {progress.done ? (
-              <>
-                <CheckCircle2 size={64} color="var(--green)" strokeWidth={1.5} />
-                <div className="download-label">Installation complete!</div>
-              </>
-            ) : (
-              <>
-                <Loader2 size={48} className="download-icon" color="var(--accent)" strokeWidth={1.5} />
-                <div className="download-label">{progress.stage}</div>
-                <div className="download-sub">{progress.percent.toFixed(1)}%</div>
-                <div style={{ width: '100%' }}>
-                  <div className="loader-bar">
-                    <div className="loader-bar-fill" style={{ width: `${progress.percent}%` }} />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        {started && !progress && (
-          <div className="download-stage">
-            <Loader2 size={48} className="download-icon" color="var(--accent)" strokeWidth={1.5} />
-            <div className="download-label">Connecting…</div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function InstancesPage({ activeAccount, activeInstance, setActiveInstance, onEditInstance }) {
+export default function InstancesPage({ activeAccount, activeInstance, setActiveInstance, onEditInstance, onManageVersions }) {
   const { addToast } = useToast();
   const { t } = useTranslation();
+  const { startDownload, activeDownloads } = useDownloads();
   const [instances, setInstances] = useState([]);
-  const [runningIds, setRunningIds] = useState(new Set());
   const [showCreate, setShowCreate] = useState(false);
-  const [downloadTarget, setDownloadTarget] = useState(null);
-  const [activeDownloads, setActiveDownloads] = useState({});
   const [mcVersions, setMcVersions] = useState([]);
   const [downloadedVersions, setDownloadedVersions] = useState([]);
+  const [launchTarget, setLaunchTarget] = useState(null);
 
   useEffect(() => {
     loadInstances();
     loadVersions();
-    loadRunning();
     loadDownloadedVersions();
-    
-    const unlistenStart = listen('instance-started', ({ payload }) => setRunningIds(s => new Set([...s, payload.launch_id])));
-    const unlistenStop  = listen('instance-stopped', ({ payload }) => setRunningIds(s => { const n = new Set(s); n.delete(payload.launch_id); return n; }));
-    
-    const unlistenProgress = listen('download-progress', ({ payload }) => {
-      setActiveDownloads(prev => {
-        const next = { ...prev };
-        next[payload.instance_id] = payload;
-        if (payload.done) {
-          if (!payload.error) addToast(`Installation complete!`, 'success');
-          if (payload.error) addToast('Download failed: ' + payload.error, 'error');
-          setTimeout(() => {
-            setActiveDownloads(cur => { const cleaned = { ...cur }; delete cleaned[payload.instance_id]; return cleaned; });
-            setDownloadTarget(current => { if (current && current.id === payload.instance_id && !payload.error) return null; return current; });
-          }, 1500);
-        }
-        return next;
-      });
-    });
+  }, []);
 
-    return () => { 
-      unlistenStart.then(f => f()); 
-      unlistenStop.then(f => f()); 
-      unlistenProgress.then(f => f());
+  // Listen for yolo-launch and yolo-refresh-instances to refresh downloads
+  useEffect(() => {
+    const handleLaunch = () => setTimeout(loadDownloadedVersions, 2000);
+    const handleRefresh = () => loadDownloadedVersions();
+    window.addEventListener('yolo-launch', handleLaunch);
+    window.addEventListener('yolo-refresh-instances', handleRefresh);
+    return () => {
+      window.removeEventListener('yolo-launch', handleLaunch);
+      window.removeEventListener('yolo-refresh-instances', handleRefresh);
     };
   }, []);
 
@@ -529,12 +449,6 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
   }
   async function loadVersions() {
     try { setMcVersions(await invoke('get_minecraft_versions', { includeSnapshots: false })); } catch {}
-  }
-  async function loadRunning() {
-    try {
-      const running = await invoke('get_running_instances');
-      setRunningIds(new Set(running.map(r => r.instance_id)));
-    } catch {}
   }
 
   async function loadDownloadedVersions() {
@@ -559,29 +473,8 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
     }
   }
 
-  async function startDownload(instance) {
-    const versionMeta = mcVersions.find(v => v.id === instance.minecraft_version);
-    if (!versionMeta) {
-      addToast('Version metadata not found. Check your internet.', 'error');
-      return;
-    }
-    setActiveDownloads(prev => ({ ...prev, [instance.id]: { stage: 'Connecting…', percent: 0, done: false } }));
-    try {
-      await invoke('download_instance', {
-        instanceId: instance.id,
-        instanceName: instance.name,
-        customPath: instance.custom_path,
-        versionId: instance.minecraft_version,
-        versionUrl: versionMeta.url,
-        loader: instance.loader || null,
-        loaderVersion: instance.loader_version || null,
-      });
-    } catch (err) {
-      addToast('Download error: ' + err, 'error');
-      setActiveDownloads(prev => { const next = { ...prev }; delete next[instance.id]; return next; });
-    }
-    // Refresh downloaded versions after a download finishes
-    loadDownloadedVersions();
+  function handleDownload(instance) {
+    startDownload(instance, mcVersions, false);
   }
 
   const formatLoader = (l) => l ? l.charAt(0).toUpperCase() + l.slice(1).toLowerCase() : '';
@@ -593,9 +486,14 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
           <div className="page-title">{t('instances')}</div>
           <div className="page-subtitle">{instances.length} {t('configured')}</div>
         </div>
-        <button id="new-instance-btn" className="btn btn-primary" onClick={() => setShowCreate(true)}>
-          <Plus size={16} /> {t('newInstance')}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={onManageVersions}>
+            <Layers size={16} /> {t('manageVersionsBtn')}
+          </button>
+          <button id="new-instance-btn" className="btn btn-primary" onClick={() => setShowCreate(true)}>
+            <Plus size={16} /> {t('newInstance')}
+          </button>
+        </div>
       </div>
 
       {instances.length === 0 ? (
@@ -616,6 +514,7 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
           {instances.map((inst, idx) => {
             const downloadProgress = activeDownloads[inst.id];
             const isSelected = activeInstance?.id === inst.id;
+            const isDownloaded = downloadedVersions.includes(inst.minecraft_version);
             
             return (
               <div
@@ -628,8 +527,6 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
                   borderColor: isSelected ? 'var(--accent)' : 'var(--border)'
                 }}
               >
-
-                
                 <div className="instance-card-header">
                   <div className="instance-card-icon">
                     {INSTANCE_ICONS_MAP[inst.icon] ? React.cloneElement(INSTANCE_ICONS_MAP[inst.icon], { size: 28 }) : <Gamepad2 size={28} />}
@@ -650,15 +547,13 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
                   </div>
                 </div>
 
-                <div className="instance-card-actions" style={{ position: 'relative', marginTop: 'auto' }}>
-                  {downloadProgress && (
+                <div className="instance-card-actions" style={{ position: 'relative', marginTop: 'auto', display: 'flex', gap: 6 }}>
+                  {downloadProgress && downloadProgress.done === false && (
                     <div 
-                      style={{ flex: 1, background: 'var(--bg-overlay)', borderRadius: 8, padding: '4px 8px', border: '1px solid var(--border-accent)', cursor: 'pointer' }}
-                      onClick={(e) => { e.stopPropagation(); setDownloadTarget(inst); }}
-                      title="Click to open download view"
+                      style={{ flex: 1, background: 'var(--bg-overlay)', borderRadius: 8, padding: '4px 8px', border: '1px solid var(--border-accent-secondary)' }}
                     >
-                      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-bright)', marginBottom: 2 }}>
-                        {downloadProgress.done ? 'Finishing...' : `${t('installing')} ${downloadProgress.percent.toFixed(0)}%`}
+                      <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--accent-secondary-bright)', marginBottom: 2 }}>
+                        {t('installing')} {downloadProgress.percent.toFixed(0)}%
                       </div>
                       <div className="loader-bar" style={{ marginTop: 0, height: 4 }}>
                         <div className="loader-bar-fill" style={{ width: `${downloadProgress.percent}%` }} />
@@ -666,43 +561,70 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
                     </div>
                   )}
                   
-                  {!downloadProgress && (
+                  {(!downloadProgress || downloadProgress.done) && (
                     <>
-                      {!downloadedVersions.includes(inst.minecraft_version) && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ flex: 1 }}
-                          id={`download-${inst.id}`}
-                          title="Install / Download"
-                          onClick={(e) => { e.stopPropagation(); setDownloadTarget(inst); }}
-                        >
-                          <Download size={14} />
-                        </button>
+                      {!isDownloaded ? (
+                        <>
+                          {/* Not downloaded: Settings=small, Download=big center, Delete=small */}
+                          <button
+                            className="btn btn-secondary btn-sm btn-icon"
+                            style={{ width: 34, height: 34, flexShrink: 0, padding: 0 }}
+                            title="Edit instance"
+                            onClick={(e) => { e.stopPropagation(); onEditInstance(inst); }}
+                          >
+                            <Settings size={14} />
+                          </button>
+
+                          <button
+                            className="btn btn-primary btn-sm install-btn"
+                            style={{ flex: 1, justifyContent: 'center', padding: '6px 8px', minWidth: 0 }}
+                            id={`download-${inst.id}`}
+                            title={t('startDownload')}
+                            onClick={(e) => { e.stopPropagation(); handleDownload(inst); }}
+                          >
+                            <Download size={14} className="install-btn-icon" />
+                            <span className="install-btn-text">{t('startDownload')}</span>
+                          </button>
+
+                          <button
+                            className="btn btn-danger btn-sm btn-icon"
+                            style={{ width: 34, height: 34, flexShrink: 0, padding: 0 }}
+                            id={`delete-${inst.id}`}
+                            title="Delete instance"
+                            onClick={(e) => handleDelete(e, inst.id, inst.name)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          {/* Downloaded: Settings=wide (icon centered), Delete=small */}
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ flex: 1, justifyContent: 'center', padding: '6px 12px' }}
+                            title={t('editInstance')}
+                            onClick={(e) => { e.stopPropagation(); onEditInstance(inst); }}
+                          >
+                            <Settings size={14} />
+                          </button>
+
+                          <button
+                            className="btn btn-danger btn-sm btn-icon"
+                            style={{ width: 34, height: 34, flexShrink: 0, padding: 0 }}
+                            id={`delete-${inst.id}`}
+                            title="Delete instance"
+                            onClick={(e) => handleDelete(e, inst.id, inst.name)}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
                       )}
-                      <button
-                        className="btn btn-secondary btn-sm btn-icon"
-                        style={downloadedVersions.includes(inst.minecraft_version) ? { flex: 1 } : {}}
-                        title="Edit instance"
-                        onClick={(e) => { e.stopPropagation(); onEditInstance(inst); }}
-                      >
-                        <Settings size={14} />
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm btn-icon"
-                        id={`delete-${inst.id}`}
-                        title="Delete instance"
-                        onClick={(e) => handleDelete(e, inst.id, inst.name)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
                     </>
                   )}
                 </div>
               </div>
             );
           })}
-
-
         </div>
       )}
 
@@ -713,18 +635,7 @@ export default function InstancesPage({ activeAccount, activeInstance, setActive
             setShowCreate(false); 
             setInstances(prev => [...prev, inst]); 
             setActiveInstance(inst);
-            setDownloadTarget(inst); 
           }}
-        />
-      )}
-
-      {downloadTarget && (
-        <DownloadModal
-          instance={downloadTarget}
-          progress={activeDownloads[downloadTarget.id]}
-          started={!!activeDownloads[downloadTarget.id]}
-          onClose={() => setDownloadTarget(null)}
-          startDownload={() => startDownload(downloadTarget)}
         />
       )}
     </div>

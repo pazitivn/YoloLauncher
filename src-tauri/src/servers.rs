@@ -97,6 +97,8 @@ pub struct ServerEntry {
     pub slp_data: Option<SlpData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub last_seen: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_pinged: Option<String>,
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────
@@ -799,10 +801,13 @@ pub async fn load_servers_with_ping(
             .and_then(|s| s.slp_data.clone());
         let cached_last_seen = store.servers.get(&key)
             .and_then(|s| s.last_seen.clone());
+        let cached_last_pinged = store.servers.get(&key)
+            .and_then(|s| s.last_pinged.clone());
         let sem = semaphore.clone();
 
         handles.push(tokio::spawn(async move {
             let _permit = sem.acquire().await;
+            let ping_ts = chrono::Local::now().to_rfc3339();
             let result = tokio::time::timeout(Duration::from_secs(6), slp_ping(&ip, port)).await;
             let last_seen_raw = cached_last_seen;
             match result {
@@ -813,6 +818,7 @@ pub async fn load_servers_with_ping(
                     status: "online".to_string(),
                     slp_data: Some(data),
                     last_seen: last_seen_raw,
+                    last_pinged: Some(ping_ts),
                 },
                 _ => ServerEntry {
                     saved_name,
@@ -821,6 +827,7 @@ pub async fn load_servers_with_ping(
                     status: "timeout".to_string(),
                     slp_data: cached_slp,
                     last_seen: last_seen_raw,
+                    last_pinged: cached_last_pinged,
                 },
             }
         }));
@@ -849,7 +856,10 @@ pub async fn load_servers_with_ping(
             }
         });
         stored.saved_name = entry.saved_name.clone();
-        stored.last_pinged = Some(final_ts.clone());
+        // Only update last_pinged on successful response (keep old timestamp on timeout)
+        if entry.status == "online" {
+            stored.last_pinged = Some(final_ts.clone());
+        }
         stored.slp_data = entry.slp_data.clone();
     }
     final_store.updated_at = Some(final_ts);
@@ -915,6 +925,7 @@ pub async fn refresh_single_server(
             let result = tokio::time::timeout(Duration::from_secs(6), slp_ping(&ip, port)).await;
             match result {
                 Ok(Ok(data)) => {
+                    let ping_ts = chrono::Local::now().to_rfc3339();
                     // Update store with fresh SLP data
                     let mut store = load_server_store(&instance_dir);
                     let entry = store.servers.entry(key).or_insert_with(|| {
@@ -928,7 +939,7 @@ pub async fn refresh_single_server(
                         }
                     });
                     entry.slp_data = Some(data.clone());
-                    entry.last_pinged = Some(chrono::Local::now().to_rfc3339());
+                    entry.last_pinged = Some(ping_ts.clone());
                     entry.saved_name = s.saved_name.clone();
                     store.updated_at = Some(chrono::Local::now().to_rfc3339());
                     save_server_store(&instance_dir, &store);
@@ -940,6 +951,7 @@ pub async fn refresh_single_server(
                         status: "online".to_string(),
                         slp_data: Some(data),
                         last_seen: last_seen_raw,
+                        last_pinged: Some(ping_ts),
                     }))
                 }
                 _ => {
@@ -955,7 +967,8 @@ pub async fn refresh_single_server(
                         }
                     });
                     let cached_slp = entry.slp_data.clone();
-                    entry.last_pinged = Some(chrono::Local::now().to_rfc3339());
+                    let cached_last_pinged = entry.last_pinged.clone();
+                    // Don't update last_pinged on timeout — keep old successful timestamp
                     entry.saved_name = s.saved_name.clone();
                     store.updated_at = Some(chrono::Local::now().to_rfc3339());
                     save_server_store(&instance_dir, &store);
@@ -967,9 +980,55 @@ pub async fn refresh_single_server(
                         status: "timeout".to_string(),
                         slp_data: cached_slp,
                         last_seen: last_seen_raw,
+                        last_pinged: cached_last_pinged,
                     }))
                 }
             }
         }
     }
+}
+
+// ── Lightweight summary (no ping) for home page ──────────────────────────
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LastServerInfo {
+    pub saved_name: String,
+    pub ip: String,
+    pub port: u16,
+    pub last_seen: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServersSummary {
+    pub total_count: usize,
+    pub last_server: Option<LastServerInfo>,
+}
+
+/// Lightweight command that reads stored server data without pinging.
+/// Returns total count and details of the most recently joined server.
+#[tauri::command]
+pub fn get_servers_summary(
+    instance_name: String,
+    custom_path: Option<String>,
+) -> Result<ServersSummary, String> {
+    let instance_dir = paths::get_instance_dir(&instance_name, custom_path.as_deref());
+    let store = load_server_store(&instance_dir);
+
+    let total_count = store.servers.len();
+
+    let last_server = store.servers.values()
+        .filter_map(|s| {
+            s.last_seen.as_ref().map(|ls| {
+                (ls.clone(), LastServerInfo {
+                    saved_name: s.saved_name.clone(),
+                    ip: s.ip.clone(),
+                    port: s.port,
+                    last_seen: Some(ls.clone()),
+                })
+            })
+        })
+        .max_by(|(a, _), (b, _)| a.cmp(b))
+        .map(|(_, info)| info);
+
+    Ok(ServersSummary { total_count, last_server })
 }

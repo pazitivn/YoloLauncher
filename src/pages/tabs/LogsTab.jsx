@@ -148,8 +148,8 @@ export default function LogsTab({ instance }) {
                 transition: 'all .15s',
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = 'var(--accent)';
-                e.currentTarget.style.background = 'color-mix(in srgb, var(--accent) 5%, var(--bg-elevated))';
+                e.currentTarget.style.borderColor = 'var(--accent-secondary)';
+                e.currentTarget.style.background = 'color-mix(in srgb, var(--accent-secondary) 5%, var(--bg-elevated))';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.borderColor = 'var(--border)';
@@ -259,7 +259,7 @@ export default function LogsTab({ instance }) {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <FileText size={18} style={{ color: 'var(--accent)' }} />
+              <FileText size={18} style={{ color: 'var(--accent-secondary)' }} />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{viewer.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
@@ -270,10 +270,10 @@ export default function LogsTab({ instance }) {
             <button
               onClick={closeViewer}
               style={{
-                background: 'rgba(255,255,255,.08)',
+                background: 'var(--bg-glass)',
                 border: 'none',
                 borderRadius: 8,
-                color: 'white',
+                color: 'var(--text-muted)',
                 cursor: 'pointer',
                 width: 36,
                 height: 36,
@@ -282,8 +282,8 @@ export default function LogsTab({ instance }) {
                 justifyContent: 'center',
                 transition: 'background .15s',
               }}
-              onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,.15)')}
-              onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,.08)')}
+              onMouseOver={(e) => (e.currentTarget.style.background = 'var(--bg-glass-hover)')}
+              onMouseOut={(e) => (e.currentTarget.style.background = 'var(--bg-glass)')}
             >
               <X size={18} />
             </button>

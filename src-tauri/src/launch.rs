@@ -22,6 +22,7 @@ const CREATE_NO_WINDOW: u32 = 0x08000000;
 use crate::accounts::Account;
 use crate::paths::{get_minecraft_dir, get_instance_dir};
 use crate::python::find_python_for_portablemc;
+use crate::tray;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RunningInstance {
@@ -52,6 +53,35 @@ pub struct GameLogEntry {
 lazy_static::lazy_static! {
     static ref RUNNING_INSTANCES: Arc<Mutex<HashMap<String, RunningInstance>>> =
         Arc::new(Mutex::new(HashMap::new()));
+    /// Log buffer: launch_id → list of log entries.
+    /// Always populated alongside `game-log` events so the console window
+    /// can fetch historical logs when it opens after launch.
+    static ref LOG_BUFFER: Arc<Mutex<HashMap<String, Vec<GameLogEntry>>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+}
+
+/// Emit a game-log event to the frontend AND buffer it for late-opening console.
+fn emit_buffered_log(app: &AppHandle, entry: GameLogEntry) {
+    let _ = app.emit("game-log", &entry);
+    let mut buf = LOG_BUFFER.lock().unwrap();
+    buf.entry(entry.launch_id.clone()).or_default().push(entry);
+}
+
+/// Return all buffered game logs, grouped by launch_id.
+/// Called by the console window on mount to receive logs emitted before it opened.
+#[tauri::command]
+pub async fn get_buffered_logs() -> Result<HashMap<String, Vec<GameLogEntry>>, String> {
+    let buf = LOG_BUFFER.lock().unwrap();
+    Ok(buf.clone())
+}
+
+/// Remove buffered logs for a given launch_id.
+/// Called when the user closes a console tab.
+#[tauri::command]
+pub async fn clear_buffered_logs(launch_id: String) -> Result<(), String> {
+    let mut buf = LOG_BUFFER.lock().unwrap();
+    buf.remove(&launch_id);
+    Ok(())
 }
 
 /// Build the version spec for portablemc:
@@ -97,6 +127,11 @@ pub async fn stop_instance(instance_id: String) -> Result<(), String> {
     let mut map = RUNNING_INSTANCES.lock().unwrap();
     map.remove(&instance_id);
     Ok(())
+}
+
+/// Returns the number of currently running game instances (across all behaviors).
+pub fn running_instance_count() -> usize {
+    RUNNING_INSTANCES.lock().unwrap().len()
 }
 
 #[tauri::command]
@@ -232,6 +267,7 @@ pub async fn launch_instance(
     if let Some(win) = app.get_webview_window("main") {
         match behavior.as_str() {
             "hide" => {
+                tray::TRAY_STATE.lock().unwrap().hide_game_count += 1;
                 let _ = win.hide();
             }
             "close" => {
@@ -274,7 +310,7 @@ pub async fn launch_instance(
         let mut child = match cmd.spawn() {
             Ok(c) => c,
             Err(e) => {
-                let _ = app_clone.emit("game-log", GameLogEntry {
+                emit_buffered_log(&app_clone, GameLogEntry {
                     launch_id: launch_id_clone.clone(),
                     instance_id: instance_id_clone.clone(),
                     instance_name: instance_name_clone.clone(),
@@ -319,7 +355,7 @@ pub async fn launch_instance(
             tokio::spawn(async move {
                 while let Ok(Some(line)) = reader.next_line().await {
                     eprintln!("[MC stdout] {}", line);
-                    let _ = app2.emit("game-log", GameLogEntry {
+                    emit_buffered_log(&app2, GameLogEntry {
                         launch_id: lid2.clone(),
                         instance_id: id2.clone(),
                         instance_name: name2.clone(),
@@ -356,7 +392,7 @@ pub async fn launch_instance(
                     } else {
                         "info"
                     };
-                    let _ = app3.emit("game-log", GameLogEntry {
+                    emit_buffered_log(&app3, GameLogEntry {
                         launch_id: lid3.clone(),
                         instance_id: id3.clone(),
                         instance_name: name3.clone(),
@@ -392,9 +428,13 @@ pub async fn launch_instance(
 
         // Restore window after game exits (if we hid it)
         if behavior_clone == "hide" {
-            if let Some(win) = app_clone.get_webview_window("main") {
-                let _ = win.show();
-                let _ = win.set_focus();
+            let mut state = tray::TRAY_STATE.lock().unwrap();
+            state.hide_game_count = state.hide_game_count.saturating_sub(1);
+            if state.hide_game_count == 0 {
+                if let Some(win) = app_clone.get_webview_window("main") {
+                    let _ = win.show();
+                    let _ = win.set_focus();
+                }
             }
         }
     });

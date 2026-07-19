@@ -97,6 +97,70 @@ function StatusDot({ online }) {
   );
 }
 
+function formatUpdateTime(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return null; // null means "just now"
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}м назад`;
+  const diffHrs = Math.floor(diffMin / 60);
+  if (diffHrs < 24) return `${diffHrs}ч назад`;
+  const days = Math.floor(diffHrs / 24);
+  if (days < 30) return `${days}д назад`;
+  return d.toLocaleDateString('ru-RU', { month: 'short', day: 'numeric' });
+}
+
+function UpdateStatus({ server, t }) {
+  const isOnline = server.status === 'online';
+  const hasCachedData = !!server.slp_data;
+
+  if (isOnline) {
+    // Green: server responded now
+    const timeText = formatUpdateTime(server.last_pinged);
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>
+        <span style={{
+          width: 7, height: 7, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
+          background: 'var(--green)',
+          boxShadow: '0 0 6px rgba(74, 222, 128, 0.5)',
+        }} />
+        {timeText || t('serversUpdateJustNow')}
+      </span>
+    );
+  }
+
+  if (hasCachedData) {
+    // Yellow: server has old data but didn't respond now
+    const timeText = formatUpdateTime(server.last_pinged);
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--yellow)' }}>
+        <span style={{
+          width: 7, height: 7, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
+          background: 'var(--yellow)',
+          boxShadow: '0 0 6px rgba(250, 204, 21, 0.5)',
+        }} />
+        {timeText || t('serversUpdateJustNow')}
+      </span>
+    );
+  }
+
+  // Red: never got a response
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--red)' }}>
+      <span style={{
+        width: 7, height: 7, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
+        background: 'var(--red)',
+        boxShadow: '0 0 6px rgba(248, 113, 113, 0.5)',
+      }} />
+      {t('serversUpdateNoResponses')}
+    </span>
+  );
+}
+
 /* ─── Server Row Card (macOS-style list row) ─────────────────────────── */
 function ServerRowCard({ server, index, onSelect }) {
   const { t } = useTranslation();
@@ -124,7 +188,7 @@ function ServerRowCard({ server, index, onSelect }) {
           position: 'relative',
           overflow: 'hidden',
           background: 'var(--bg-elevated)',
-          border: `1px solid ${hovered ? 'var(--border-accent)' : 'var(--border)'}`,
+          border: `1px solid ${hovered ? 'var(--border-accent-secondary)' : 'var(--border)'}`,
           boxShadow: hovered
             ? '0 8px 32px rgba(0,0,0,0.2), 0 2px 8px rgba(0,0,0,0.1)'
             : '0 1px 3px rgba(0,0,0,0.08)',
@@ -251,7 +315,7 @@ function ServerRowCard({ server, index, onSelect }) {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 32, height: 32, borderRadius: 10,
               background: hovered ? 'color-mix(in srgb, var(--accent) 10%, transparent)' : 'transparent',
-              color: hovered ? 'var(--accent-bright)' : 'var(--text-muted)',
+              color: hovered ? 'var(--accent-secondary-bright)' : 'var(--text-muted)',
               transition: 'all 0.2s ease',
               flexShrink: 0,
             }}
@@ -326,6 +390,7 @@ function ServerDetailView({ server, onBack, onRefresh, lang }) {
               {server.saved_name}
             </span>
           </div>
+          <UpdateStatus server={server} t={t} />
           <button
             onClick={async () => { setRefreshing(true); await onRefresh(); setRefreshing(false); }}
             disabled={refreshing}
@@ -465,7 +530,7 @@ function ServerDetailView({ server, onBack, onRefresh, lang }) {
                 icon: <Users size={16} />,
                 label: t('serversPlayersLabel'),
                 value: formatPlayers(onlinePlayers, maxPlayers, t('serversNoData')),
-                accent: 'var(--accent-bright)',
+                accent: 'var(--accent-secondary-bright)',
               },
               {
                 icon: <Gamepad2 size={16} />,
@@ -665,7 +730,7 @@ export default function ServersPage({ instances, activeInstance }) {
                 width: '100%',
                 display: 'flex', alignItems: 'center', gap: 12,
                 background: 'var(--bg-elevated)',
-                border: `1px solid ${instanceDropdownOpen ? 'var(--border-accent)' : 'var(--border)'}`,
+                border: `1px solid ${instanceDropdownOpen ? 'var(--border-accent-secondary)' : 'var(--border)'}`,
                 borderRadius: 14,
                 padding: '10px 14px',
                 cursor: 'pointer',
@@ -736,17 +801,17 @@ export default function ServersPage({ instances, activeInstance }) {
                       cursor: 'pointer', color: 'var(--text-primary)',
                       fontSize: 13, textAlign: 'left',
                       backgroundColor: selectedInstance?.id === inst.id
-                        ? 'color-mix(in srgb, var(--accent-bright) 12%, transparent)'
+                        ? 'color-mix(in srgb, var(--accent-secondary-bright) 12%, transparent)'
                         : 'transparent',
                     }}
-                    onMouseOver={e => { if (selectedInstance?.id !== inst.id) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--accent-bright) 6%, transparent)'; }}
+                    onMouseOver={e => { if (selectedInstance?.id !== inst.id) e.currentTarget.style.backgroundColor = 'color-mix(in srgb, var(--accent-secondary-bright) 6%, transparent)'; }}
                     onMouseOut={e => { if (selectedInstance?.id !== inst.id) e.currentTarget.style.backgroundColor = 'transparent'; }}
                   >
                     <span
                       style={{
                         width: 28, height: 28, borderRadius: 8, flexShrink: 0,
                         background: selectedInstance?.id === inst.id
-                          ? 'linear-gradient(135deg, var(--accent-bright), var(--accent-dim))'
+                          ? 'linear-gradient(135deg, var(--accent-secondary-bright), var(--accent-secondary-dim))'
                           : 'var(--bg-surface)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
@@ -767,7 +832,7 @@ export default function ServersPage({ instances, activeInstance }) {
                       </div>
                     </div>
                     {selectedInstance?.id === inst.id && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-bright)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-secondary-bright)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                         <polyline points="20 6 9 17 4 12" />
                       </svg>
                     )}
@@ -848,9 +913,9 @@ export default function ServersPage({ instances, activeInstance }) {
           <div
             style={{
               fontSize: 11, fontWeight: 700,
-              color: 'var(--accent-bright)',
-              background: 'color-mix(in srgb, var(--accent-bright) 14%, transparent)',
-              border: '1px solid color-mix(in srgb, var(--accent-bright) 24%, transparent)',
+              color: 'var(--accent-secondary-bright)',
+              background: 'color-mix(in srgb, var(--accent-secondary-bright) 14%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--accent-secondary-bright) 24%, transparent)',
               padding: '6px 10px',
               borderRadius: 999,
             }}

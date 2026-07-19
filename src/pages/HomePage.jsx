@@ -297,7 +297,7 @@ function NewsCard({ article, lang, delay = 0, onClick, compact = false }) {
         </div>
         <div className="news-card-title">{showTitle}</div>
         {!compact && showSummary && <div className="news-card-summary">{showSummary}</div>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, color: 'var(--accent-bright)', fontSize: 12, fontWeight: 600 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8, color: 'var(--accent-secondary-bright)', fontSize: 12, fontWeight: 600 }}>
           {t('readMore')} <ChevronRight size={13} />
         </div>
       </div>
@@ -359,7 +359,7 @@ function StatsHeroCard({ instances, activeInstance, onPlayInstance, t }) {
         <div className="home-stats-grid">
           {/* Hours */}
           <div className="home-stat-item">
-            <div className="home-stat-icon" style={{ color: 'var(--accent-bright)' }}><Clock size={18} /></div>
+            <div className="home-stat-icon" style={{ color: 'var(--accent-secondary-bright)' }}><Clock size={18} /></div>
             <div className="home-stat-value">{totalHours}h</div>
             <div className="home-stat-label">{t('totalPlayTime')}</div>
           </div>
@@ -422,21 +422,96 @@ function StatsHeroCard({ instances, activeInstance, onPlayInstance, t }) {
   );
 }
 
+// ─── Helpers for relative date ────────────────────────────────────────────────
+function formatRelativeDate(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const now = new Date();
+  const diffMs = now - d;
+  const diffHrs = Math.floor(diffMs / 3600000);
+  if (diffHrs < 1) {
+    const mins = Math.floor(diffMs / 60000);
+    return `${mins}м назад`;
+  }
+  if (diffHrs < 24) return `${diffHrs}ч назад`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays === 1) return 'вчера';
+  if (diffDays < 7) return `${diffDays} дн. назад`;
+  return new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short' }).format(d);
+}
+
 // ─── Servers Teaser ───────────────────────────────────────────────────────────
-function ServersTeaser({ t, onGoServers }) {
+function ServersTeaser({ t, onGoServers, instances, activeInstance }) {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const inst = activeInstance || instances?.[0];
+    if (!inst) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    invoke('get_servers_summary', {
+      instanceName: inst.name,
+      customPath: inst.custom_path || null,
+    })
+      .then(setSummary)
+      .catch(() => setSummary(null))
+      .finally(() => setLoading(false));
+  }, [activeInstance, instances]);
+
+  const hasServers = summary && summary.total_count > 0;
+
   return (
     <div className="home-servers-teaser fade-in-up" style={{ animationDelay: '120ms' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Server size={18} color="var(--accent-bright)" />
-          <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+          <Server size={18} color="var(--accent-secondary-bright)" />
+          <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13 }}>{t('serversTitle')}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('serversTeaser')}</div>
+            {loading ? (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>—</div>
+            ) : hasServers && summary.last_server ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 1, overflow: 'hidden' }}>
+                <span style={{
+                  fontSize: 11, color: 'var(--text-secondary)',
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                }}>
+                  {t('serversLastServer')}: {summary.last_server.ip}
+                </span>
+                {summary.last_server.last_seen && (
+                  <span style={{
+                    fontSize: 10, color: 'var(--text-muted)', flexShrink: 0,
+                    background: 'var(--bg-surface)', padding: '1px 6px', borderRadius: 6,
+                  }}>
+                    {formatRelativeDate(summary.last_server.last_seen)}
+                  </span>
+                )}
+              </div>
+            ) : hasServers ? (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>
+                {summary.total_count} {t('serversAdded')}
+              </div>
+            ) : (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('serversTeaser')}</div>
+            )}
           </div>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={onGoServers} style={{ gap: 6 }}>
-          {t('open')} <ChevronRight size={13} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          {hasServers && (
+            <div style={{
+              fontSize: 16, fontWeight: 800, color: 'var(--accent-secondary-bright)',
+              lineHeight: 1,
+            }}>
+              {summary.total_count}
+            </div>
+          )}
+          <button className="btn btn-secondary btn-sm" onClick={onGoServers} style={{ gap: 6 }}>
+            {t('open')} <ChevronRight size={13} />
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -510,13 +585,13 @@ export default function HomePage({ instances, activeInstance, setActiveInstance,
         t={t}
       />
 
-      <ServersTeaser t={t} onGoServers={() => setPage('servers')} />
+      <ServersTeaser t={t} onGoServers={() => setPage('servers')} instances={instances} activeInstance={activeInstance} />
 
       {/* News block */}
       <div className="home-news-block fade-in-up" style={{ animationDelay: '200ms' }}>
         <div className="home-news-header" onClick={() => setNewsOpen(o => !o)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Sparkles size={16} color="var(--accent-bright)" />
+            <Sparkles size={16} color="var(--accent-secondary-bright)" />
             <span style={{ fontWeight: 700, fontSize: 14 }}>{t('newsTitle')}</span>
             {newsLoading && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: 'var(--text-muted)' }} />}
           </div>

@@ -188,14 +188,14 @@ export default function ModsTab({ instance }) {
           ref={dropRef}
           onClick={handlePickFiles}
           style={{
-            border: `2px dashed ${flashGreen ? '#4ade80' : dragOver ? 'var(--accent)' : 'var(--border)'}`,
+            border: `2px dashed ${flashGreen ? '#4ade80' : dragOver ? 'var(--accent-secondary-bright)' : 'var(--border)'}`,
             borderRadius: 12, padding: '24px 12px', textAlign: 'center', cursor: 'pointer',
-            background: flashGreen ? 'rgba(74,222,128,.08)' : dragOver ? 'color-mix(in srgb, var(--accent) 5%, transparent)' : 'var(--bg-overlay)',
+            background: flashGreen ? 'rgba(74,222,128,.08)' : dragOver ? 'color-mix(in srgb, var(--accent-secondary) 5%, transparent)' : 'var(--bg-overlay)',
             transition: 'all .2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
             height: 250, justifyContent: 'center',
           }}
         >
-          <Upload size={22} style={{ color: dragOver || flashGreen ? 'var(--accent)' : 'var(--text-muted)' }} />
+          <Upload size={22} style={{ color: dragOver || flashGreen ? 'var(--accent-secondary-bright)' : 'var(--text-muted)' }} />
           <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
             {t('modsDropHint').split('\n').map((l,i)=><span key={i}>{l}{i===0&&<br/>}</span>)}
           </div>

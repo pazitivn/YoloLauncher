@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ConsoleApp from './ConsoleApp';
+import './index.css';
 
 const isConsole = window.location.hash === '#console';
 

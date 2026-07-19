@@ -5,6 +5,7 @@ use chrono::Utc;
 use std::fs;
 use crate::paths::get_yololauncher_dir;
 use serde_json::Value;
+use std::path::Path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Instance {
@@ -111,6 +112,46 @@ pub fn save_instances(data: &InstanceStore) {
 #[tauri::command]
 pub async fn get_instances() -> Result<Vec<Instance>, String> {
     Ok(load_instances().instances)
+}
+
+fn get_state_file() -> std::path::PathBuf {
+    get_yololauncher_dir().join("state.json")
+}
+
+fn load_state() -> std::collections::HashMap<String, String> {
+    let path = get_state_file();
+    if path.exists() {
+        if let Ok(content) = fs::read_to_string(&path) {
+            if let Ok(state) = serde_json::from_str(&content) {
+                return state;
+            }
+        }
+    }
+    std::collections::HashMap::new()
+}
+
+fn save_state(state: &std::collections::HashMap<String, String>) {
+    let path = get_state_file();
+    if let Some(parent) = path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Ok(content) = serde_json::to_string_pretty(state) {
+        let _ = fs::write(path, content);
+    }
+}
+
+#[tauri::command]
+pub async fn set_last_selected_instance(instance_id: String) -> Result<(), String> {
+    let mut state = load_state();
+    state.insert("last_selected_instance_id".to_string(), instance_id);
+    save_state(&state);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_last_selected_instance() -> Result<Option<String>, String> {
+    let state = load_state();
+    Ok(state.get("last_selected_instance_id").cloned())
 }
 
 #[tauri::command]
@@ -423,4 +464,501 @@ pub async fn get_downloaded_versions() -> Result<Vec<String>, String> {
     }
 
     Ok(versions)
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VersionEntry {
+    pub id: String,
+    pub minecraft_version: String,
+    pub loader: Option<String>,
+    pub loader_version: Option<String>,
+    pub size_bytes: u64,
+}
+
+/// Try to determine if a folder looks like a Minecraft version.
+/// A valid version JSON must have a non-empty "id" field AND either a non-empty "type" (vanilla) or "inheritsFrom" (loader).
+fn looks_like_version(_folder_name: &str, json_path: &std::path::Path) -> bool {
+    if !json_path.exists() {
+        return false;
+    }
+    let content = match std::fs::read_to_string(json_path) {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    let json: Value = match serde_json::from_str(&content) {
+        Ok(j) => j,
+        Err(_) => return false,
+    };
+    // Must have a non-empty "id" field
+    let _id = match json.get("id").and_then(|v| v.as_str()) {
+        Some(s) if !s.is_empty() => s,
+        _ => return false,
+    };
+    // Must have either a non-empty "type" (vanilla/release/snapshot) or "inheritsFrom" (loader)
+    let has_type = json.get("type").and_then(|v| v.as_str()).map_or(false, |s| !s.is_empty());
+    let has_inherits = json.get("inheritsFrom").and_then(|v| v.as_str()).map_or(false, |s| !s.is_empty());
+    has_type || has_inherits
+}
+
+/// Helper: Get the path to the loader's library folder (e.g., Fabric/Quilt)
+fn get_loader_library_path(loader_name: &str, loader_version: &str) -> Option<std::path::PathBuf> {
+    let libs_dir = crate::paths::get_minecraft_dir().join("libraries");
+    match loader_name.to_lowercase().as_str() {
+        "fabric" => Some(libs_dir.join("net").join("fabricmc").join("fabric-loader").join(loader_version)),
+        "quilt" => Some(libs_dir.join("org").join("quiltmc").join("quilt-loader").join(loader_version)),
+        _ => None,
+    }
+}
+
+/// Scan .minecraft/versions/ and return detailed info about each installed version.
+#[tauri::command]
+pub async fn get_versions_detail() -> Result<Vec<VersionEntry>, String> {
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let mut entries = Vec::new();
+
+    if !versions_dir.exists() {
+        return Ok(entries);
+    }
+
+    let dir_entries = std::fs::read_dir(&versions_dir)
+        .map_err(|e| format!("Failed to read versions directory: {}", e))?;
+
+    for entry in dir_entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+
+        let folder_name = match entry.file_name().to_str() {
+            Some(name) => name.to_string(),
+            None => continue,
+        };
+
+        let json_path = path.join(format!("{}.json", folder_name));
+
+        // Skip non-Minecraft folders (no valid version JSON)
+        if !looks_like_version(&folder_name, &json_path) {
+            continue;
+        }
+
+        let mut size_bytes = dir_size(&path);
+        let (minecraft_version, loader, loader_version) = parse_version_folder(&folder_name, &json_path);
+
+        // --- NEW: Add the size of the loader's library folder (if it exists) ---
+        if let (Some(l_name), Some(l_ver)) = (&loader, &loader_version) {
+            if let Some(lib_path) = get_loader_library_path(l_name, l_ver) {
+                if lib_path.exists() {
+                    size_bytes += dir_size(&lib_path);
+                }
+            }
+        }
+        // ------------------------------------------------------------------------
+
+        // Skip entries with empty id or minecraft_version (defensive)
+        if folder_name.is_empty() || minecraft_version.is_empty() {
+            continue;
+        }
+
+        entries.push(VersionEntry {
+            id: folder_name,
+            minecraft_version,
+            loader,
+            loader_version,
+            size_bytes,
+        });
+    }
+
+    // Sort: newest MC versions first using a natural version-aware sort
+    entries.sort_by(|a, b| {
+        let a_parts: Vec<u64> = a.minecraft_version.split('.').filter_map(|s| s.parse().ok()).collect();
+        let b_parts: Vec<u64> = b.minecraft_version.split('.').filter_map(|s| s.parse().ok()).collect();
+        // Compare component by component (major.minor.patch)
+        for i in 0..3.max(a_parts.len()).max(b_parts.len()) {
+            let a_val = a_parts.get(i).copied().unwrap_or(0);
+            let b_val = b_parts.get(i).copied().unwrap_or(0);
+            if a_val != b_val {
+                return b_val.cmp(&a_val); // descending
+            }
+        }
+        std::cmp::Ordering::Equal
+    });
+
+    Ok(entries)
+}
+
+/// Recursively calculate directory size in bytes.
+fn dir_size(path: &std::path::Path) -> u64 {
+    let mut total = 0u64;
+    if let Ok(dir) = std::fs::read_dir(path) {
+        for entry in dir.flatten() {
+            let p = entry.path();
+            if p.is_file() {
+                total += std::fs::metadata(&p).map(|m| m.len()).unwrap_or(0);
+            } else if p.is_dir() {
+                total += dir_size(&p);
+            }
+        }
+    }
+    total
+}
+
+/// Helper function to copy directories recursively
+fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> std::io::Result<()> {
+    fs::create_dir_all(&dst)?;
+    for entry in fs::read_dir(src)? {
+        let entry = entry?;
+        let ty = entry.file_type()?;
+        if ty.is_dir() {
+            copy_dir_all(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        } else {
+            fs::copy(entry.path(), dst.as_ref().join(entry.file_name()))?;
+        }
+    }
+    Ok(())
+}
+
+/// Parse version folder name and its JSON to extract MC version, loader type and version.
+fn parse_version_folder(
+    folder_name: &str,
+    json_path: &std::path::Path,
+) -> (String, Option<String>, Option<String>) {
+    let name_lower = folder_name.to_lowercase();
+
+    // Detect loader from folder name prefix
+    // More specific prefixes must come first (e.g. "fabric-loader" before "fabric")
+    let loader_patterns: [(&str, &str); 6] = [
+        ("fabric-loader", "Fabric"),
+        ("fabric", "Fabric"),
+        ("quilt-loader", "Quilt"),
+        ("quilt", "Quilt"),
+        ("forge", "Forge"),
+        ("neoforge", "NeoForge"),
+    ];
+
+    let detected = loader_patterns
+        .iter()
+        .find(|(prefix, _)| name_lower.starts_with(prefix));
+
+    // Try reading version JSON first (most reliable)
+    if let Ok(content) = std::fs::read_to_string(json_path) {
+        if let Ok(json) = serde_json::from_str::<Value>(&content) {
+            // If inheritsFrom exists and is non-empty, this is a loader-modified version
+            if let Some(inherits_from) = json.get("inheritsFrom").and_then(|v| v.as_str()) {
+                if !inherits_from.is_empty() {
+                    let mc_ver = inherits_from.to_string();
+                    let loader_ver = extract_loader_version(folder_name, detected.map(|d| d.0), &mc_ver);
+                    return (mc_ver, detected.map(|d| d.1.to_string()), loader_ver);
+                }
+            }
+
+            // Plain vanilla version (use id if non-empty, fallback to folder_name)
+            let id = json
+                .get("id")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .unwrap_or(folder_name);
+            return (id.to_string(), None, None);
+        }
+    }
+
+    // Fallback: parse folder name heuristically
+    if let Some((prefix, display)) = detected {
+        let rest = folder_name[prefix.len()..].trim_start_matches('-');
+        let parts: Vec<&str> = rest.split('-').collect();
+
+        if (*prefix == "fabric-loader" || *prefix == "quilt-loader") && parts.len() >= 2 {
+            // fabric-loader-X.Y.Z-A.B.C  or  quilt-loader-X.Y.Z-A.B.C
+            let lv = parts[0].to_string();
+            let mc = parts[1..].join("-");
+            return (mc, Some(display.to_string()), Some(lv));
+        } else if parts.len() >= 2 {
+            // fabric-A.B.C-X.Y.Z  or  fabric-A.B.C
+            let mc = parts[0].to_string();
+            let lv = parts[parts.len() - 1].to_string();
+            return (mc, Some(display.to_string()), Some(lv));
+        } else if parts.len() == 1 {
+            let mc = parts[0].to_string();
+            return (mc, Some(display.to_string()), None);
+        }
+    }
+
+    (folder_name.to_string(), None, None)
+}
+
+/// Try to extract loader version from a loader folder name, given the known MC version.
+fn extract_loader_version(name: &str, prefix: Option<&str>, mc_ver: &str) -> Option<String> {
+    let prefix = prefix?;
+    let rest = name[prefix.len()..].trim_start_matches('-');
+    if rest.is_empty() {
+        return None;
+    }
+
+    // Try to strip the MC version from the end of the rest (e.g. "0.16.5-1.21.4" -> strip "-1.21.4" -> "0.16.5")
+    if let Some(idx) = rest.rfind(mc_ver) {
+        let before = rest[..idx].trim_end_matches('-');
+        if !before.is_empty() {
+            return Some(before.to_string());
+        }
+    }
+
+    // For fabric-loader, first part is loader version
+    if prefix == "fabric-loader" {
+        return rest.split('-').next().map(String::from);
+    }
+
+    // For other loaders, last part is loader version
+    let parts: Vec<&str> = rest.split('-').collect();
+    if parts.len() >= 2 {
+        Some(parts[parts.len() - 1].to_string())
+    } else {
+        None
+    }
+}
+
+/// Delete a version folder from .minecraft/versions/.
+#[tauri::command]
+pub async fn delete_version_folder(version_id: String) -> Result<(), String> {
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let target = versions_dir.join(&version_id);
+
+    if !target.exists() {
+        return Err(format!("Version '{}' not found", version_id));
+    }
+    if !target.is_dir() {
+        return Err(format!("'{}' is not a directory", version_id));
+    }
+
+    // --- NEW: Получаем данные о версии перед её удалением ---
+    let json_path = target.join(format!("{}.json", version_id));
+    let (_, loader_opt, loader_ver_opt) = parse_version_folder(&version_id, &json_path);
+    // --------------------------------------------------------
+
+    // Удаляем саму папку из versions
+    std::fs::remove_dir_all(&target)
+        .map_err(|e| format!("Failed to delete '{}': {}", version_id, e))?;
+
+    // --- NEW: Проверяем, нужно ли очистить библиотеку загрузчика ---
+    if let (Some(loader), Some(loader_ver)) = (loader_opt, loader_ver_opt) {
+        let mut is_still_used = false;
+
+        // Сканируем оставшиеся папки в versions
+        if let Ok(entries) = std::fs::read_dir(&versions_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if !path.is_dir() { continue; }
+
+                let name = entry.file_name().to_string_lossy().into_owned();
+                let j_path = path.join(format!("{}.json", name));
+                
+                let (_, other_loader, other_loader_ver) = parse_version_folder(&name, &j_path);
+                
+                // Если мы нашли другую версию, которая использует этот же загрузчик
+                if other_loader == Some(loader.clone()) && other_loader_ver == Some(loader_ver.clone()) {
+                    is_still_used = true;
+                    break;
+                }
+            }
+        }
+
+        // Если загрузчик больше никем не используется, удаляем его из libraries
+        if !is_still_used {
+            if let Some(lib_path) = get_loader_library_path(&loader, &loader_ver) {
+                if lib_path.exists() {
+                    let _ = std::fs::remove_dir_all(lib_path);
+                }
+            }
+        }
+    }
+    // ---------------------------------------------------------------
+
+    Ok(())
+}
+
+// ==========================================
+// Логика миграции сборок из папки versions
+// ==========================================
+
+#[derive(Serialize, Deserialize)]
+pub struct ScanResult {
+    pub modpacks: Vec<String>,
+    pub empty_folders: Vec<String>,
+    pub duplicate_loaders: Vec<String>, // Дубликаты загрузчиков TLauncher
+}
+
+#[derive(Serialize)]
+pub struct MigrateResult {
+    pub status: String,
+    pub error: Option<String>,
+}
+
+fn path_has_jar(base: &Path, folder: &str) -> bool {
+    base.join(folder).join(format!("{}.jar", folder)).exists()
+}
+
+#[tauri::command]
+pub async fn scan_malformed_versions() -> Result<ScanResult, String> {
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let mut modpacks = Vec::new();
+    let mut empty_folders = Vec::new();
+    let mut duplicate_loaders = Vec::new();
+    
+    // Временный список для поиска дубликатов загрузчиков
+    // Структура: (название_папки, minecraft_version, loader_name, loader_version)
+    let mut valid_loaders: Vec<(String, String, String, String)> = Vec::new();
+
+    if !versions_dir.exists() {
+        return Ok(ScanResult { modpacks, empty_folders, duplicate_loaders });
+    }
+
+    let entries = match fs::read_dir(&versions_dir) {
+        Ok(e) => e,
+        Err(_) => return Ok(ScanResult { modpacks, empty_folders, duplicate_loaders })
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() { continue; }
+        
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let json_path = path.join(format!("{}.json", name));
+
+        // Сначала проверяем, есть ли признаки отдельной сборки (изолированной папки).
+        let is_modpack = path.join("mods").exists() 
+            || path.join("saves").exists() 
+            || path.join("options.txt").exists();
+
+        if is_modpack {
+            modpacks.push(name);
+        } else if !looks_like_version(&name, &json_path) {
+            // Если это не сборка и не похоже на обычную версию, проверяем, не пустая ли папка
+            if let Ok(mut sub_entries) = fs::read_dir(&path) {
+                if sub_entries.next().is_none() {
+                    empty_folders.push(name);
+                }
+            }
+        } else {
+            // Это валидная версия. Парсим её, чтобы позже найти дубликаты TL.
+            let (mc_ver, loader_opt, loader_ver_opt) = parse_version_folder(&name, &json_path);
+            if let (Some(loader), Some(loader_ver)) = (loader_opt, loader_ver_opt) {
+                valid_loaders.push((name.clone(), mc_ver, loader, loader_ver));
+            }
+        }
+    }
+    
+    // Ищем дубликаты загрузчиков
+    for i in 0..valid_loaders.len() {
+        for j in (i + 1)..valid_loaders.len() {
+            let a = &valid_loaders[i];
+            let b = &valid_loaders[j];
+            
+            // Если версия майнкрафта, тип лоадера и версия лоадера совпадают - это дубликат
+            if a.1 == b.1 && a.2 == b.2 && a.3 == b.3 {
+                let a_has_jar = path_has_jar(&versions_dir, &a.0);
+                let b_has_jar = path_has_jar(&versions_dir, &b.0);
+                
+                // TL всегда кладет .jar в папку, официальный Fabric/Quilt/NeoForge - нет.
+                let to_delete = if a_has_jar && !b_has_jar {
+                    a.0.clone()
+                } else if b_has_jar && !a_has_jar {
+                    b.0.clone()
+                } else {
+                    // Если по наличию .jar определить не удалось, удаляем ту, чье название короче
+                    // (Обычно это именно TL, т.к. "fabric-1.21.1" короче чем "fabric-loader-...")
+                    if a.0.len() < b.0.len() { a.0.clone() } else { b.0.clone() }
+                };
+                
+                if !duplicate_loaders.contains(&to_delete) {
+                    duplicate_loaders.push(to_delete);
+                }
+            }
+        }
+    }
+    
+    Ok(ScanResult { modpacks, empty_folders, duplicate_loaders })
+}
+
+#[tauri::command]
+pub async fn migrate_modpack(name: String) -> Result<MigrateResult, String> {
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let instances_dir = crate::paths::get_minecraft_dir().join("instances");
+    let src = versions_dir.join(&name);
+    let dst = instances_dir.join(&name);
+
+    if !src.exists() { 
+        return Err("Source not found".into()); 
+    }
+
+    // Attempt to copy recursively
+    if let Err(e) = copy_dir_all(&src, &dst) {
+        return Ok(MigrateResult { 
+            status: "CopyFailed".into(), 
+            error: Some(e.to_string()) 
+        });
+    }
+
+    // Verify copy by size
+    let src_size = dir_size(&src);
+    let dst_size = dir_size(&dst);
+    if src_size != dst_size {
+        return Ok(MigrateResult { 
+            status: "CopyFailed".into(), 
+            error: Some("Размер папок не совпадает после копирования".into()) 
+        });
+    }
+
+    // Try deleting the original directory (might fail if a file is locked by the game)
+    if let Err(e) = fs::remove_dir_all(&src) {
+        return Ok(MigrateResult { 
+            status: "CopiedButNotDeleted".into(), 
+            error: Some(e.to_string()) 
+        });
+    }
+
+    Ok(MigrateResult { status: "Success".into(), error: None })
+}
+
+#[tauri::command]
+pub async fn delete_empty_folder(name: String) -> Result<MigrateResult, String> {
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let src = versions_dir.join(&name);
+    
+    if !src.exists() { 
+        return Ok(MigrateResult { status: "Success".into(), error: None }); 
+    }
+    
+    if let Err(e) = fs::remove_dir_all(&src) {
+        return Ok(MigrateResult { 
+            status: "DeleteFailed".into(), 
+            error: Some(e.to_string()) 
+        });
+    }
+    
+    Ok(MigrateResult { status: "Success".into(), error: None })
+}
+
+#[tauri::command]
+pub async fn fix_instance_paths() -> Result<(), String> {
+    let mut data = load_instances();
+    let versions_dir = crate::paths::get_minecraft_dir().join("versions");
+    let instances_dir = crate::paths::get_minecraft_dir().join("instances");
+
+    let mut changed = false;
+    for inst in data.instances.iter_mut() {
+        if let Some(cp) = &inst.custom_path {
+            let cp_path = std::path::PathBuf::from(cp);
+            if cp_path.starts_with(&versions_dir) {
+                if let Ok(rel) = cp_path.strip_prefix(&versions_dir) {
+                    let new_path = instances_dir.join(rel);
+                    inst.custom_path = Some(new_path.to_string_lossy().into_owned());
+                    changed = true;
+                }
+            }
+        }
+    }
+    
+    if changed {
+        save_instances(&data);
+    }
+    
+    Ok(())
 }

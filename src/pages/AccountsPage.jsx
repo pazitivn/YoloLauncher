@@ -219,7 +219,7 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
           <div className="accounts-right-title font-bold text-[14px]">{t('skinSystems')}</div>
           <div className="accounts-right-desc">{t('skinSystemsDesc')}</div>
         </div>
-        {saving && <Loader size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-bright)' }} />}
+        {saving && <Loader size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent-secondary-bright)' }} />}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -233,7 +233,7 @@ function SkinIntegrationsPanel({ account, onRefresh }) {
               className={`skin-integration-card ${isMain ? 'selected-main' : ''}`}
               style={{
                 border: isMain ? '1px solid var(--accent-bright)' : '1px solid var(--border)',
-                boxShadow: isMain ? '0 0 12px rgba(124,106,247,0.15)' : 'none',
+                boxShadow: isMain ? '0 0 12px color-mix(in srgb, var(--accent-secondary) 30%, transparent)' : 'none',
                 background: isMain ? 'linear-gradient(160deg, color-mix(in srgb, var(--accent) 3%, var(--bg-elevated)), var(--bg-elevated))' : 'var(--bg-elevated)',
                 transition: 'all 0.2s ease',
                 borderRadius: 'var(--radius-lg)'
